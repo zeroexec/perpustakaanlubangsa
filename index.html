@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perpustakaan Lubangsa</title>
+    <title>Sistem Perpustakaan ZeroExec v2</title>
     <style>
         html, body {
             margin: 0;
@@ -24,6 +24,7 @@
 
     <script>
         let initialWidth = window.innerWidth;
+        let initialHeight = window.innerHeight;
         let isRedirecting = false;
         
         const redirect = () => {
@@ -34,18 +35,32 @@
             }, 0);
         };
         
-        function checkWidthAndRedirect() {
-            if (initialWidth === 0 || isRedirecting) return;
+        function checkDimensions() {
+            if (isRedirecting) return;
             
-            const threshold = 150; 
+            const widthShrinkageThreshold = 150; 
+            const heightShrinkageThreshold = 100;
+
             const currentWidth = window.innerWidth;
+            const currentHeight = window.innerHeight;
             
-            if (currentWidth < (initialWidth - threshold)) {
+            if (currentWidth < (initialWidth - widthShrinkageThreshold) || 
+                currentHeight < (initialHeight - heightShrinkageThreshold)) 
+            {
+                redirect();
+                return;
+            }
+            
+            const absoluteDiffThreshold = 200;
+            const outerInnerWidthDiff = window.outerWidth - window.innerWidth;
+            const outerInnerHeightDiff = window.outerHeight - window.innerHeight;
+
+            if (outerInnerWidthDiff > absoluteDiffThreshold || outerInnerHeightDiff > absoluteDiffThreshold) {
                 redirect();
             }
         }
         
-        setInterval(checkWidthAndRedirect, 100);
+        setInterval(checkDimensions, 100);
         
         document.addEventListener('keydown', function(e) {
             const code = e.keyCode;
