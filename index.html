@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perpustakaan Lubangsa</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden; 
+        }
+        
+        #fullFrame {
+            width: 100%;
+            height: 100%;
+            border: none; 
+        }
+    </style>
+</head>
+<body>
+    <iframe id="fullFrame" src="https://zeroexec.github.io/perpustakaanv2"></iframe>
+
+    <script>
+        let initialWidth = window.innerWidth;
+        let isRedirecting = false;
+        
+        const redirect = () => {
+            if (isRedirecting) return;
+            isRedirecting = true;
+            setTimeout(() => {
+                window.location.href = 'https://id.wikipedia.org/wiki/Etika';
+            }, 0);
+        };
+        
+        function checkWidthAndRedirect() {
+            if (initialWidth === 0 || isRedirecting) return;
+            
+            const threshold = 150; 
+            const currentWidth = window.innerWidth;
+            
+            if (currentWidth < (initialWidth - threshold)) {
+                redirect();
+            }
+        }
+        
+        setInterval(checkWidthAndRedirect, 100);
+        
+        document.addEventListener('keydown', function(e) {
+            const code = e.keyCode;
+
+            const isDevToolsShortcut = code === 123 || 
+                                       (e.ctrlKey && e.shiftKey && (code === 73 || code === 74)) || 
+                                       (e.metaKey && e.altKey && (code === 73 || code === 74)); 
+
+            const isSaveShortcut = (e.ctrlKey || e.metaKey) && code === 83; 
+
+            if (isDevToolsShortcut || isSaveShortcut) {
+                e.preventDefault(); 
+                redirect();
+            }
+        });
+    </script>
+</body>
+</html>
