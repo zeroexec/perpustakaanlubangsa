@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beranda - Perpustakaan Lubangsa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --accent-color: #2563eb;
+        }
+        .dark {
+            --accent-color: #60a5fa;
+        }
+        body {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #f8fafc;
+        }
+        .dark body {
+            background: #0f172a;
+        }
+        .hero-container {
+            text-align: center;
+        }
+        .logo-img {
+            height: 200px;
+            width: auto;
+            object-fit: contain;
+            margin-bottom: 1.5rem;
+        }
+        .title-text {
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+        .dark .title-text {
+            color: #f8fafc;
+        }
+        .subtitle-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5em;
+            color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hero-container">
+        <img src="logo.png" alt="Logo Perpustakaan Lubangsa" class="logo-img mx-auto">
+        <h1 class="title-text">Perpustakaan Lubangsa</h1>
+        <p class="subtitle-text">Administrator System</p>
+    </div>
+
+    <script>
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+</body>
+</html>
