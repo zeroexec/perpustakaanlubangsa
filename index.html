@@ -3,80 +3,345 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perpustakaan Lubangsa</title>
-    <link rel="icon" type="image/png" href="logo.png">
+    
+    <title>Perpustakaan Lubangsa - Katalog Buku & Literasi Pesantren</title>
+    <meta name="description" content="Akses katalog buku online (OPAC) Perpustakaan Lubangsa. Cari koleksi buku, cek ketersediaan, dan jelajahi literasi terbaik di Pondok Pesantren Annuqayah Lubangsa.">
+    <meta name="keywords" content="Perpustakaan Lubangsa, Katalog Buku Lubangsa, OPAC Lubangsa, Annuqayah, Perpustakaan Pesantren">
+    <meta name="author" content="Perpustakaan Lubangsa">
+    <link rel="canonical" href="https://url-website-anda.com">
+
+    <meta property="og:title" content="Perpustakaan Lubangsa - Sistem Informasi Perpustakaan">
+    <meta property="og:description" content="Cari dan cek ketersediaan koleksi buku Perpustakaan Lubangsa secara real-time.">
+    <meta property="og:url" content="https://url-website-anda.com">
+    <meta property="og:type" content="website">
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden; 
+        :root { 
+            --bg: #f8fafc; --card: #ffffff; --text: #0f172a; 
+            --text-muted: #64748b; --border: #e2e8f0; --sheet: #ffffff;
+            --inner-bg: #f1f5f9; --accent: #3b82f6; --overlay-bg: rgba(15, 23, 42, 0.6);
         }
-        
-        #fullFrame {
-            width: 100%;
-            height: 100%;
-            border: none; 
+        body.dark-theme { 
+            --bg: #020617; --card: #0f172a; --text: #f1f5f9; 
+            --text-muted: #94a3b8; --border: #1e293b; --sheet: #0f172a;
+            --inner-bg: #1e293b; --accent: #60a5fa; --overlay-bg: rgba(0, 0, 0, 0.85);
+        }
+        body { 
+            background-color: var(--bg); color: var(--text); 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            min-height: 100vh; -webkit-font-smoothing: antialiased;
+        }
+        .logo-text {
+            font-size: 1.5rem; font-weight: 800; letter-spacing: -0.04em;
+            background: linear-gradient(to right, var(--text) 60%, var(--accent));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        .loading-container {
+            width: 120px; height: 3px; background: var(--border);
+            border-radius: 10px; margin-top: 6px; overflow: hidden;
+            position: relative;
+        }
+        .loading-bar {
+            width: 0%; height: 100%; background: var(--accent);
+            border-radius: 10px; transition: width 0.5s ease;
+            position: absolute; left: 0; top: 0;
+        }
+        .book-card { 
+            background: var(--card); border: 1px solid var(--border);
+            cursor: pointer; transform: translateZ(0);
+        }
+        .modal-container {
+            position: fixed; inset: 0; z-index: 100;
+            display: none; align-items: center; justify-content: center;
+            padding: 1rem;
+        }
+        .modal-container.active { display: flex; }
+        .overlay { 
+            position: fixed; inset: 0; 
+            background-color: var(--overlay-bg); 
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            position: relative;
+            background: var(--sheet); width: 100%; max-width: 850px;
+            max-height: 90vh; border-radius: 1.5rem; overflow: hidden;
+            display: flex; flex-direction: column; border: 1px solid var(--border);
+            z-index: 101;
+        }
+        .modal-body { 
+            overflow-y: auto; padding: 1.5rem; flex: 1; 
+            -webkit-overflow-scrolling: touch;
+        }
+        .pagination-btn {
+            padding: 0.5rem 1rem; border-radius: 0.75rem; border: 1px solid var(--border);
+            background: var(--card); color: var(--text); font-weight: 800; font-size: 0.75rem;
+        }
+        .pagination-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .search-container { display: flex; align-items: center; gap: 0.5rem; }
+        .mini-search {
+            width: 160px; transition: width 0.3s ease;
+            background: var(--card); border: 1px solid var(--border); color: var(--text);
+        }
+        .mini-search:focus { width: 220px; outline: none; border-color: var(--accent); }
+        .theme-btn {
+            width: 38px; height: 38px; border-radius: 10px;
+            background: var(--card); border: 1px solid var(--border);
+            color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .sr-only {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0,0,0,0); border: 0;
         }
     </style>
 </head>
-<body>
-    <iframe id="fullFrame" src="https://zeroexec.github.io/perpustakaanv2"></iframe>
+<body class="p-4 md:p-10">
 
-    <script>
-        let initialWidth = window.innerWidth;
-        let initialHeight = window.innerHeight;
-        let isRedirecting = false;
-        
-        const redirect = () => {
-            if (isRedirecting) return;
-            isRedirecting = true;
-            setTimeout(() => {
-                window.location.href = 'https://id.wikipedia.org/wiki/Etika';
-            }, 0);
-        };
-        
-        function checkDimensions() {
-            if (isRedirecting) return;
-            
-            const widthShrinkageThreshold = 150; 
-            const heightShrinkageThreshold = 100;
+<h1 class="sr-only">Pencarian Buku Perpustakaan Lubangsa</h1>
 
-            const currentWidth = window.innerWidth;
-            const currentHeight = window.innerHeight;
-            
-            if (currentWidth < (initialWidth - widthShrinkageThreshold) || 
-                currentHeight < (initialHeight - heightShrinkageThreshold)) 
-            {
-                redirect();
-                return;
-            }
-            
-            const absoluteDiffThreshold = 200;
-            const outerInnerWidthDiff = window.outerWidth - window.innerWidth;
-            const outerInnerHeightDiff = window.outerHeight - window.innerHeight;
+<div class="max-w-6xl mx-auto">
+    <header class="flex items-start justify-between gap-4 mb-10">
+        <div>
+            <a href="admin.html" class="logo-text inline-block">Perpustakaan Lubangsa</a>
+            <div class="flex flex-col">
+                <div class="loading-container">
+                    <div id="loadingBar" class="loading-bar"></div>
+                </div>
+                <div id="countText" class="text-[8px] font-bold opacity-30 uppercase tracking-[0.2em] mt-2">Sinkronisasi...</div>
+            </div>
+        </div>
 
-            if (outerInnerWidthDiff > absoluteDiffThreshold || outerInnerHeightDiff > absoluteDiffThreshold) {
-                redirect();
-            }
-        }
-        
-        setInterval(checkDimensions, 100);
-        
-        document.addEventListener('keydown', function(e) {
-            const code = e.keyCode;
+        <div class="search-container mt-1">
+            <div class="relative">
+                <label for="searchInput" class="sr-only">Cari Koleksi</label>
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px] opacity-30"></i>
+                <input type="text" id="searchInput" placeholder="Cari Koleksi..." 
+                       class="mini-search pl-8 pr-3 py-2 rounded-xl text-xs font-bold shadow-sm">
+            </div>
+            <button class="theme-btn" onclick="toggleOpacTheme()" aria-label="Toggle Tema">
+                <i id="themeIcon" class="fas fa-moon"></i>
+            </button>
+        </div>
+    </header>
 
-            const isDevToolsShortcut = code === 123 || 
-                                       (e.ctrlKey && e.shiftKey && (code === 73 || code === 74)) || 
-                                       (e.metaKey && e.altKey && (code === 73 || code === 74)); 
+    <main id="bookGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5"></main>
+    <nav id="pagination" class="mt-12 flex flex-wrap justify-center items-center gap-2 pb-24"></nav>
+</div>
 
-            const isSaveShortcut = (e.ctrlKey || e.metaKey) && code === 83; 
+<div id="modalContainer" class="modal-container" role="dialog" aria-modal="true">
+    <div class="overlay" onclick="closeDetails()"></div>
+    <div class="modal-content shadow-2xl">
+        <div class="flex justify-between items-center px-6 py-4 border-b" style="border-color: var(--border)">
+            <span class="text-[10px] font-black opacity-30 uppercase tracking-widest" style="color: var(--text)">Informasi Bibliografi</span>
+            <button onclick="closeDetails()" class="text-[var(--text)] opacity-50 hover:opacity-100 p-2"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <div id="modalBody" class="modal-body"></div>
+    </div>
+</div>
 
-            if (isDevToolsShortcut || isSaveShortcut) {
-                e.preventDefault(); 
-                redirect();
-            }
+<script>
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ", 
+        databaseURL: "https://databuku-6385c-default-rtdb.firebaseio.com", 
+        projectId: "databuku-6385c" 
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(), rtdb = firebase.database();
+
+    let allBooks = [], filteredBooks = [], loans = [], ekslemparMap = new Map();
+    let itemsPerPage = 15, currentPage = 1;
+
+    rtdb.ref('settings/opac_dark_mode').on('value', snap => {
+        const isDark = snap.val() === true;
+        document.body.classList.toggle('dark-theme', isDark);
+        document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-yellow-400' : 'fas fa-moon text-blue-500';
+    });
+
+    function toggleOpacTheme() {
+        const isDark = document.body.classList.contains('dark-theme');
+        rtdb.ref('settings').update({ opac_dark_mode: !isDark });
+    }
+
+    async function init() {
+        updateProgress(30);
+        db.collection("ekslempar").onSnapshot(snap => {
+            ekslemparMap.clear();
+            snap.forEach(doc => { ekslemparMap.set(doc.data().kode, doc.data().lokasi_rak || '-'); });
         });
-    </script>
+        
+        db.collection("peminjaman_v2").where("status", "==", "DIPINJAM").onSnapshot(snap => {
+            loans = snap.docs.map(d => d.data().kode_ekslempar);
+            renderDisplay();
+        });
+
+        db.collection("biblio").onSnapshot(snap => {
+            updateProgress(70);
+            allBooks = snap.docs.map(doc => {
+                const d = doc.data();
+                let score = 0;
+                if(d.judul) score += 1;
+                if(d.penulis) score += 1;
+                if(d.abstrak && d.abstrak.length > 50) score += 10;
+                if(d.sampul_url) score += 5;
+                if(d.isbn_issn) score += 1;
+                if(d.penerbit) score += 1;
+                if(d.kode && d.kode.length > 0) score += 2;
+                return { id: doc.id, ...d, completeness: score };
+            });
+            allBooks.sort((a, b) => b.completeness - a.completeness);
+            handleSearch();
+            updateProgress(100);
+            setTimeout(() => updateProgress(0), 1000);
+        });
+    }
+
+    function updateProgress(val) {
+        document.getElementById('loadingBar').style.width = val + '%';
+    }
+
+    function handleSearch() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        filteredBooks = allBooks.filter(b => (b.judul||'').toLowerCase().includes(q) || (b.penulis||'').toLowerCase().includes(q));
+        currentPage = 1; renderDisplay();
+    }
+
+    function renderDisplay() {
+        const grid = document.getElementById('bookGrid');
+        grid.innerHTML = '';
+        const start = (currentPage - 1) * itemsPerPage;
+        const pageItems = filteredBooks.slice(start, start + itemsPerPage);
+        
+        pageItems.forEach(b => {
+            const codes = Array.isArray(b.kode) ? b.kode : [];
+            const avail = codes.filter(c => !loans.includes(c)).length;
+            const article = document.createElement('article');
+            article.className = 'book-card p-3 rounded-2xl flex flex-col gap-3';
+            article.onclick = () => showDetails(b);
+            article.innerHTML = `
+                <div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900/40">
+                    ${b.sampul_url ? `<img src="${b.sampul_url}" alt="${b.judul}" class="w-full h-full object-cover" loading="lazy">` : `<div class="w-full h-full flex items-center justify-center opacity-10 text-[8px] font-black uppercase">No Cover</div>`}
+                </div>
+                <div class="flex-grow">
+                    <h2 class="text-[10px] font-extrabold line-clamp-2 uppercase tracking-tight" style="color: var(--text)">${b.judul||'UNTITLED'}</h2>
+                    <p class="text-[8px] font-bold opacity-40 truncate mt-1 uppercase" style="color: var(--text)">${b.penulis||'-'}</p>
+                </div>
+                <div class="pt-2 border-t flex justify-between items-center" style="border-color: var(--border)">
+                    <span class="text-[8px] font-black uppercase ${avail > 0 ? 'text-green-500' : 'text-red-500'}">${avail > 0 ? 'Tersedia' : 'Keluar'}</span>
+                    <span class="text-[8px] font-bold opacity-20" style="color: var(--text)">${avail}/${codes.length}</span>
+                </div>
+            `;
+            grid.appendChild(article);
+        });
+        renderPagination();
+        document.getElementById('countText').textContent = `${filteredBooks.length} KOLEKSI TERSEDIA`;
+    }
+
+    function renderPagination() {
+        const container = document.getElementById('pagination');
+        container.innerHTML = '';
+        const totalPages = Math.ceil(filteredBooks.length / itemsPerPage);
+        if (totalPages <= 1) return;
+
+        const addBtn = (label, targetPage, disabled = false, active = false) => {
+            const btn = document.createElement('button');
+            btn.className = `pagination-btn ${active ? 'active' : ''}`;
+            btn.innerHTML = label;
+            btn.disabled = disabled;
+            btn.onclick = () => { currentPage = targetPage; renderDisplay(); window.scrollTo({top:0, behavior:'instant'}); };
+            container.appendChild(btn);
+        };
+
+        addBtn('<<', 1, currentPage === 1);
+        addBtn('<', currentPage - 1, currentPage === 1);
+        for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages, currentPage + 1); i++) {
+            addBtn(i, i, false, i === currentPage);
+        }
+        addBtn('>', currentPage + 1, currentPage === totalPages);
+        addBtn('>>', totalPages, currentPage === totalPages);
+    }
+
+    function showDetails(b) {
+        const modal = document.getElementById('modalContainer');
+        const body = document.getElementById('modalBody');
+        const codes = Array.isArray(b.kode) ? b.kode : [];
+        const avail = codes.filter(c => !loans.includes(c)).length;
+
+        body.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-2xl font-black uppercase leading-tight mb-2" style="color: var(--text)">${b.judul}</h3>
+                        <p class="text-blue-500 font-bold text-sm uppercase">${b.penulis || 'Anonim'}</p>
+                    </div>
+                    
+                    <div class="p-5 rounded-xl border" style="background: var(--inner-bg); border-color: var(--border);">
+                        <p class="text-[9px] font-black opacity-30 uppercase mb-2" style="color: var(--text)">Abstrak</p>
+                        <p class="text-xs leading-relaxed" style="color: var(--text-muted)">${b.abstrak || 'Informasi ringkasan belum tersedia.'}</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-3 border rounded-xl" style="border-color: var(--border)">
+                            <p class="text-[9px] font-black opacity-30 uppercase" style="color: var(--text)">ISBN/ISSN</p>
+                            <p class="text-[10px] font-bold" style="color: var(--text)">${b.isbn_issn||'-'}</p>
+                        </div>
+                        <div class="p-3 border rounded-xl" style="border-color: var(--border)">
+                            <p class="text-[9px] font-black opacity-30 uppercase" style="color: var(--text)">Penerbit</p>
+                            <p class="text-[10px] font-bold uppercase" style="color: var(--text)">${b.penerbit||'-'}</p>
+                        </div>
+                        <div class="p-3 border rounded-xl" style="border-color: var(--border)">
+                            <p class="text-[9px] font-black opacity-30 uppercase" style="color: var(--text)">Tahun</p>
+                            <p class="text-[10px] font-bold" style="color: var(--text)">${b.tahun_terbit||'-'}</p>
+                        </div>
+                        <div class="p-3 border rounded-xl" style="border-color: var(--border)">
+                            <p class="text-[9px] font-black opacity-30 uppercase" style="color: var(--text)">No. Panggil</p>
+                            <p class="text-[10px] font-bold text-blue-500 font-mono">${b.nomor_panggil||'-'}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-blue-600 rounded-2xl p-6 text-white self-start shadow-xl">
+                    <p class="text-[10px] font-black opacity-60 uppercase mb-4 tracking-widest">Ketersediaan Unit</p>
+                    <div class="text-5xl font-black mb-6">${avail} <span class="text-xs opacity-60 font-bold">Buku</span></div>
+                    <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        ${codes.map(c => {
+                            const isL = loans.includes(c);
+                            return `<div class="p-3 rounded-lg bg-white/10 flex justify-between items-center text-[10px] font-bold">
+                                <div class="flex flex-col">
+                                    <span class="opacity-50 text-[8px] font-black uppercase tracking-tighter">Rak: ${ekslemparMap.get(c)||'-'}</span>
+                                    <span class="font-mono">${c}</span>
+                                </div>
+                                <span class="text-[8px] px-2 py-0.5 rounded-full ${isL ? 'bg-red-500/40' : 'bg-green-500/40'} uppercase font-black">
+                                    ${isL ? 'Keluar' : 'Tersedia'}
+                                </span>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetails() {
+        document.getElementById('modalContainer').classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        clearTimeout(window.searchTimer);
+        window.searchTimer = setTimeout(handleSearch, 300);
+    });
+
+    window.onload = init;
+</script>
 </body>
-</html> 
+</html>
