@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUBANGSA Digital Library</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --gradient: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            --bg-body: #f1f5f9;
+            --bg-sidebar: #ffffff;
+            --bg-sub: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.dark-theme {
+            --bg-body: #0f172a;
+            --bg-sidebar: #1e293b;
+            --bg-sub: #0f172a50;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
+        body { font-family: 'Inter', sans-serif; margin: 0; background: var(--bg-body); color: var(--text-main); transition: background 0.3s; height: 100vh; overflow: hidden; display: flex; }
+
+        #login-screen { position: fixed; inset: 0; background: var(--bg-body); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: var(--bg-sidebar); padding: 40px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        .login-card input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-body); color: var(--text-main); box-sizing: border-box; outline: none; transition: 0.2s; }
+        .login-card button { width: 100%; padding: 14px; margin-top: 20px; border: none; border-radius: 10px; background: var(--gradient); color: white; font-weight: 700; cursor: pointer; }
+
+        #main-app { display: none; width: 100%; height: 100vh; opacity: 0; transition: opacity 0.5s ease; }
+        #main-app.visible { display: flex; opacity: 1; }
+
+        .sidebar { width: 280px; background: var(--bg-sidebar); display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+        .brand { padding: 30px 25px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border); }
+        .brand-logo { width: 42px; height: 42px; background: var(--gradient); color: white; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 1.4rem; }
+        
+        .nav-container { flex-grow: 1; overflow-y: auto; padding: 15px 0; }
+        .nav-item { margin: 4px 12px; border-radius: 10px; overflow: hidden; transition: var(--transition); }
+        .nav-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+        .nav-item.active { background: var(--bg-sub); transform: translateX(5px); }
+        .nav-item.active .nav-header { color: var(--primary); background: #2563eb10; }
+        
+        .sub-wrapper { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .nav-item.active .sub-wrapper { grid-template-rows: 1fr; }
+        .sub-content { overflow: hidden; }
+        .sub-content a { display: flex; align-items: center; gap: 12px; padding: 10px 20px 10px 45px; text-decoration: none; color: var(--text-muted); font-size: 0.85rem; transition: 0.2s; }
+        .sub-content a:hover { color: var(--primary); background: rgba(37, 99, 235, 0.05); }
+        .sub-content a.active { color: var(--primary); font-weight: 700; background: var(--bg-sidebar); border-right: 4px solid var(--primary); }
+
+        .sidebar-footer { padding: 15px; border-top: 1px solid var(--border); background: var(--bg-sub); }
+        .footer-btn { display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); transition: 0.2s; }
+        .footer-btn:hover { background: var(--border); }
+
+        .main { flex-grow: 1; padding: 20px; }
+        
+        .frame-box { 
+            background: var(--bg-sidebar); 
+            height: 100%; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            border: 1px solid var(--border); 
+            transition: transform 0.25s ease-out, opacity 0.2s ease;
+            transform-origin: center;
+        }
+        
+        .frame-box.soft-press {
+            transform: scale(0.99);
+            opacity: 0.9;
+        }
+
+        iframe { width: 100%; height: 100%; border: none; display: none; }
+        iframe.active { display: block; animation: smoothIn 0.3s ease-out forwards; }
+
+        @keyframes smoothIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(8px); display: none; z-index: 9999; align-items: flex-end; }
+        .modal-overlay.show { display: flex; }
+        .modal-body { width: 100%; background: var(--bg-sidebar); border-radius: 30px 30px 0 0; padding: 30px; transform: translateY(100%); transition: 0.4s; max-height: 85vh; overflow-y: auto; box-sizing: border-box; }
+        .modal-overlay.show .modal-body { transform: translateY(0); }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-card">
+        <div class="brand-logo" style="margin: 0 auto 20px auto;"><i class="fas fa-book-reader"></i></div>
+        <h2 style="margin-bottom: 10px;">Masuk Sistem</h2>
+        <div id="login-form-area" onkeydown="if(event.key === 'Enter') handleLogin()">
+            <input type="text" id="login-user" placeholder="Username Admin" autofocus>
+            <input type="password" id="login-pass" placeholder="Password">
+            <button onclick="handleLogin()">Masuk Sekarang</button>
+        </div>
+        <p id="login-err" style="color: #ef4444; font-size: 0.8rem; margin-top: 15px; min-height: 1.2rem;"></p>
+    </div>
+</div>
+
+<div id="main-app">
+    <div class="sidebar">
+        <div class="brand">
+            <div class="brand-logo"><i class="fas fa-book-reader"></i></div>
+            <div class="brand-text">
+                <div style="font-size: 1.2rem; font-weight: 800; text-transform: uppercase;">LUBANG<span style="color:var(--primary); font-weight:400;">SA</span></div>
+                <div style="font-size: 0.6rem; font-weight: 600; color: var(--text-muted); letter-spacing: 1px;">Digital Library</div>
+            </div>
+        </div>
+        <div id="dynamic-nav" class="nav-container"></div>
+        <div class="sidebar-footer">
+            <div class="footer-btn" onclick="toggleDarkMode()">
+                <i id="themeIcon" class="fas fa-moon"></i>
+                <span id="themeText">Mode Gelap</span>
+            </div>
+            <div class="footer-btn logout-btn" onclick="handleLogout()">
+                <i class="fas fa-power-off"></i>
+                <span>Keluar Sistem</span>
+            </div>
+        </div>
+    </div>
+    <div class="main">
+        <div class="frame-box" id="frame-container"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-nav" onclick="closeModal()">
+    <div class="modal-body" onclick="event.stopPropagation()">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0;">Kostum Navigasi</h2>
+            <button onclick="closeModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted);">&times;</button>
+        </div>
+        <div id="editor-list"></div>
+        <button onclick="addGroup()" style="width:100%; padding:15px; border:2px dashed var(--border); background:none; color:var(--text-muted); cursor:pointer; border-radius:12px; font-weight:700; margin-top:10px;">+ TAMBAH KATEGORI UTAMA</button>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ",
+        databaseURL: "https://databuku-6385c-default-rtdb.firebaseio.com",
+        projectId: "databuku-6385c",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let navData = [];
+    let isDarkMode = false;
+    let credentials = {};
+
+    db.ref('/').on('value', snap => {
+        const data = snap.val() || {};
+        navData = data.navigationConfig || [];
+        isDarkMode = data.settings?.dark_mode || false;
+        credentials = data.admin_credentials || { user: 'admin', pass: 'admin123' };
+        applyTheme(isDarkMode);
+        renderSidebar();
+    });
+
+    function handleLogin() {
+        const user = document.getElementById('login-user').value;
+        const pass = document.getElementById('login-pass').value;
+        const err = document.getElementById('login-err');
+        if (user === credentials.user && pass === credentials.pass) {
+            sessionStorage.setItem('isLoggedIn', 'true');
+            showApp();
+        } else {
+            err.innerText = "Username atau password salah!";
+        }
+    }
+
+    function showApp() {
+        const app = document.getElementById('main-app');
+        document.getElementById('login-screen').style.display = 'none';
+        app.style.display = 'flex';
+        setTimeout(() => app.classList.add('visible'), 50);
+    }
+
+    function handleLogout() {
+        sessionStorage.removeItem('isLoggedIn');
+        window.location.reload();
+    }
+
+    window.onload = () => {
+        if (sessionStorage.getItem('isLoggedIn') === 'true') showApp();
+    };
+
+    function toggleDarkMode() { db.ref('settings/dark_mode').set(!isDarkMode); }
+
+    function applyTheme(dark) {
+        document.body.classList.toggle('dark-theme', dark);
+        document.getElementById('themeIcon').className = dark ? 'fas fa-sun' : 'fas fa-moon';
+        document.getElementById('themeText').innerText = dark ? 'Mode Terang' : 'Mode Gelap';
+    }
+
+    function renderSidebar() {
+        const container = document.getElementById('dynamic-nav');
+        container.innerHTML = '';
+        navData.forEach(g => {
+            const item = document.createElement('div');
+            item.className = 'nav-item';
+            item.id = `item-${g.id}`;
+            item.innerHTML = `
+                <div class="nav-header" onclick="toggleMenu('item-${g.id}')">
+                    <span><i class="${g.icon || 'fas fa-folder'}"></i> ${g.title}</span>
+                    <i class="fas fa-chevron-down chevron" style="transition:0.3s"></i>
+                </div>
+                <div class="sub-wrapper"><div class="sub-content"></div></div>
+            `;
+            const subBox = item.querySelector('.sub-content');
+            if(g.sub) g.sub.forEach(s => {
+                const a = document.createElement('a'); a.href = "#";
+                a.innerHTML = `<i class="${s.icon || 'far fa-circle'}"></i> ${s.label}`;
+                a.onclick = (e) => { e.preventDefault(); loadFrame(s.id, s.file, a); };
+                subBox.appendChild(a);
+            });
+            container.appendChild(item);
+        });
+
+        const adminItem = document.createElement('div');
+        adminItem.className = 'nav-item';
+        adminItem.id = 'item-setting';
+        adminItem.innerHTML = `<div class="nav-header" onclick="toggleMenu('item-setting')"><span><i class="fas fa-sliders-h"></i> PENGATURAN</span><i class="fas fa-chevron-down chevron"></i></div><div class="sub-wrapper"><div class="sub-content"><a href="#" onclick="openModal()"><i class="fas fa-edit"></i> Atur Navigasi</a></div></div>`;
+        container.appendChild(adminItem);
+    }
+
+    function toggleMenu(id) {
+        document.querySelectorAll('.nav-item').forEach(el => {
+            const chevron = el.querySelector('.chevron');
+            if(el.id === id) {
+                const isActive = el.classList.toggle('active');
+                if(chevron) chevron.style.transform = isActive ? 'rotate(180deg)' : 'rotate(0deg)';
+            } else {
+                el.classList.remove('active');
+                if(chevron) chevron.style.transform = 'rotate(0deg)';
+            }
+        });
+    }
+
+    function loadFrame(id, src, el) {
+        document.querySelectorAll('.sub-content a').forEach(a => a.classList.remove('active'));
+        el.classList.add('active');
+        
+        const container = document.getElementById('frame-container');
+        
+        container.classList.add('soft-press');
+        
+        setTimeout(() => {
+            let f = document.getElementById(id);
+            if(!f) { 
+                f = document.createElement('iframe'); 
+                f.id = id; 
+                container.appendChild(f); 
+            }
+            
+            document.querySelectorAll('iframe').forEach(ifr => ifr.classList.remove('active'));
+            
+            if(!f.src || f.src.indexOf(src) === -1) f.src = src;
+            f.classList.add('active');
+            
+            setTimeout(() => {
+                container.classList.remove('soft-press');
+            }, 50);
+        }, 100);
+    }
+
+    function openModal() { document.getElementById('modal-nav').classList.add('show'); renderEditor(); }
+    function closeModal() { document.getElementById('modal-nav').classList.remove('show'); }
+
+    function renderEditor() {
+        const list = document.getElementById('editor-list');
+        list.innerHTML = '';
+        navData.forEach((g, gIdx) => {
+            const card = document.createElement('div');
+            card.style = "background:var(--bg-sub); padding:15px; border-radius:15px; margin-bottom:15px; border:1px solid var(--border);";
+            
+            let subHtml = '';
+            if(g.sub) {
+                g.sub.forEach((s, sIdx) => {
+                    subHtml += `
+                        <div style="display:flex; align-items:center; gap:8px; margin-top:8px; padding-left:25px;">
+                            <i class="fas fa-link" style="opacity:0.3; font-size:0.8rem;"></i>
+                            <input type="text" placeholder="Label Menu" value="${s.label}" oninput="updateSub(${gIdx}, ${sIdx}, 'label', this.value)" style="flex:2; border:1px solid var(--border); padding:8px; border-radius:8px; font-size:0.85rem; background:var(--bg-sidebar); color:var(--text-main);">
+                            <input type="text" placeholder="File.html" value="${s.file}" oninput="updateSub(${gIdx}, ${sIdx}, 'file', this.value)" style="flex:3; border:1px solid var(--border); padding:8px; border-radius:8px; font-size:0.85rem; background:var(--bg-sidebar); color:var(--text-main);">
+                            <button onclick="deleteSub(${gIdx}, ${sIdx})" style="border:none; background:none; color:#ef4444; cursor:pointer; padding:5px;"><i class="fas fa-times"></i></button>
+                        </div>
+                    `;
+                });
+            }
+
+            card.innerHTML = `
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                    <i class="fas fa-grip-lines handle" style="cursor:grab; opacity:0.4"></i>
+                    <input type="text" value="${g.title}" oninput="navData[${gIdx}].title=this.value; saveNav();" style="flex:1; border:1px solid var(--border); padding:10px; border-radius:10px; font-weight:700; background:var(--bg-sidebar); color:var(--text-main);">
+                    <button onclick="navData.splice(${gIdx},1); saveNav(); renderEditor();" style="border:none; background:none; color:#ef4444; cursor:pointer; padding:5px;"><i class="fas fa-trash"></i></button>
+                </div>
+                <div id="sub-list-${gIdx}">${subHtml}</div>
+                <button onclick="addSub(${gIdx})" style="margin-top:12px; margin-left:25px; font-size:0.75rem; padding:8px 15px; border:1px dashed var(--primary); background:none; color:var(--primary); border-radius:8px; cursor:pointer; font-weight:700;">+ TAMBAH SUB MENU</button>
+            `;
+            list.appendChild(card);
+        });
+        new Sortable(list, { handle:'.handle', animation:150, onEnd: (e) => { const item = navData.splice(e.oldIndex, 1)[0]; navData.splice(e.newIndex, 0, item); saveNav(); } });
+    }
+
+    function updateSub(gIdx, sIdx, field, val) { navData[gIdx].sub[sIdx][field] = val; saveNav(); }
+    function addSub(gIdx) { if(!navData[gIdx].sub) navData[gIdx].sub = []; navData[gIdx].sub.push({ id: 's'+Date.now(), label: 'Menu Baru', file: 'index.html', icon: 'far fa-circle' }); saveNav(); renderEditor(); }
+    function deleteSub(gIdx, sIdx) { navData[gIdx].sub.splice(sIdx, 1); saveNav(); renderEditor(); }
+    function addGroup() { navData.push({ id: 'g'+Date.now(), title: 'Kategori Baru', icon: 'fas fa-folder', sub: [] }); saveNav(); renderEditor(); }
+    function saveNav() { db.ref('navigationConfig').set(navData); }
+</script>
+</body>
+</html>
