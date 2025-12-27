@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cetak Label Barcode Ekslempar</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; margin: 0; padding: 0; }
+            #printArea { 
+                display: grid !important; 
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                padding: 10px;
+            }
+            .label-barcode { 
+                page-break-inside: avoid; 
+                border: 0.5pt solid #000 !important;
+            }
+        }
+
+        .label-barcode {
+            width: 100%;
+            height: 3.5cm;
+            border: 1px solid #000;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+            margin: 5px;
+            overflow: hidden;
+        }
+
+        .label-header {
+            background-color: #e5e7eb;
+            border-bottom: 1px solid #000;
+            color: black;
+            font-size: 11px;
+            text-align: center;
+            font-weight: bold;
+            padding: 4px 2px;
+            text-transform: uppercase;
+        }
+
+        .label-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 5px;
+        }
+
+        .label-title-mini {
+            font-size: 9px;
+            font-weight: normal;
+            color: black;
+            line-height: 1.2;
+            text-align: center;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            width: 90%;
+            margin-bottom: 4px;
+        }
+
+        .barcode-svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .barcode-text {
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 2px;
+            letter-spacing: 1px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-50 p-6">
+
+    <div class="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-xl no-print">
+        <div class="flex justify-between items-center mb-8 border-b pb-5">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 tracking-tight">BARCODE EKSLEMPAR</h1>
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Header Abu-abu | Tinggi 3.5cm</p>
+            </div>
+            <div class="flex gap-3">
+                <a href="daftarbibliografi.html" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 px-5 rounded-xl text-sm transition border">Kembali</a>
+                <button id="printBtn" disabled class="bg-slate-800 hover:bg-teal-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-lg disabled:bg-slate-300 transition text-sm">
+                    Cetak (<span id="selectedCountDisplay">0</span>) Barcode
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="md:col-span-3">
+                <input type="text" id="searchInput" placeholder="Cari Judul atau Kode Item..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-slate-800 transition text-sm font-medium">
+            </div>
+            <div>
+                <input type="text" id="customHeaderName" value="Perpustakaan Lubangsa" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-slate-800 transition text-sm font-medium">
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center mb-4 px-1">
+            <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Daftar Item (<span id="totalItems">0</span>)</span>
+            <button onclick="toggleSelectAll()" id="selectAllBtn" class="text-xs font-black text-slate-800 uppercase hover:text-teal-600 transition">Pilih Halaman Ini</button>
+        </div>
+
+        <div id="ekslemparList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[50vh] overflow-y-auto custom-scrollbar p-1">
+            <div class="col-span-full text-center py-20 text-slate-400 font-bold uppercase tracking-widest">Memproses Data...</div>
+        </div>
+
+        <div class="mt-8 flex justify-between items-center bg-slate-50 p-4 rounded-xl border">
+            <button id="prevPage" class="bg-white border px-5 py-2 rounded-lg font-bold text-slate-600 disabled:opacity-30">Sebelumnya</button>
+            <span id="pageInfo" class="text-sm font-black text-slate-800 uppercase">Halaman 1 / 1</span>
+            <button id="nextPage" class="bg-white border px-5 py-2 rounded-lg font-bold text-slate-600 disabled:opacity-30">Berikutnya</button>
+        </div>
+    </div>
+
+    <div id="printArea" class="hidden"></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ",
+            authDomain: "databuku-6385c.firebaseapp.com",
+            databaseURL: "https://databuku-6385c-default-rtdb.firebaseio.com",
+            projectId: "databuku-6385c",
+            storageBucket: "databuku-6385c.firebasestorage.app",
+            messagingSenderId: "844439345466",
+            appId: "1:844439345466:web:fb90dfc8337a96f0621803"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let allEkslempar = []; 
+        let filteredEkslempar = [];
+        let selectedEkslemparIds = new Set();
+        let currentPage = 1;
+        const itemsPerPage = 12;
+
+        const listContainer = document.getElementById('ekslemparList');
+        const searchInput = document.getElementById('searchInput');
+        const selectedCountDisplay = document.getElementById('selectedCountDisplay');
+        const totalItemsDisplay = document.getElementById('totalItems');
+        const printBtn = document.getElementById('printBtn');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const pageInfo = document.getElementById('pageInfo');
+
+        function getCurrentPageItems() {
+            const start = (currentPage - 1) * itemsPerPage;
+            return filteredEkslempar.slice(start, start + itemsPerPage);
+        }
+
+        function updateSelectedCount() {
+            const count = selectedEkslemparIds.size;
+            selectedCountDisplay.textContent = count;
+            printBtn.disabled = count === 0;
+            const currentItems = getCurrentPageItems();
+            const allVisibleSelected = currentItems.length > 0 && currentItems.every(item => selectedEkslemparIds.has(item.id));
+            selectAllBtn.textContent = allVisibleSelected ? 'Batal Pilih' : 'Pilih Halaman Ini';
+        }
+
+        function toggleSelection(id) {
+            if (selectedEkslemparIds.has(id)) selectedEkslemparIds.delete(id);
+            else selectedEkslemparIds.add(id);
+            renderEkslemparList();
+            updateSelectedCount();
+        }
+        
+        function toggleSelectAll() {
+            const currentItems = getCurrentPageItems();
+            const allVisibleSelected = currentItems.length > 0 && currentItems.every(item => selectedEkslemparIds.has(item.id));
+            currentItems.forEach(item => {
+                if (allVisibleSelected) selectedEkslemparIds.delete(item.id);
+                else selectedEkslemparIds.add(item.id);
+            });
+            renderEkslemparList();
+            updateSelectedCount();
+        }
+
+        function renderEkslemparList() {
+            totalItemsDisplay.textContent = filteredEkslempar.length;
+            const currentItems = getCurrentPageItems();
+            const totalPages = Math.ceil(filteredEkslempar.length / itemsPerPage) || 1;
+            
+            if (currentItems.length === 0) {
+                listContainer.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400 font-bold uppercase tracking-widest">Data tidak ditemukan</div>';
+                return;
+            }
+
+            listContainer.innerHTML = currentItems.map(eks => {
+                const isSelected = selectedEkslemparIds.has(eks.id);
+                return `
+                    <div onclick="toggleSelection('${eks.id}')" class="flex items-center p-4 border rounded-2xl cursor-pointer transition-all ${isSelected ? 'bg-slate-800 border-slate-800 text-white shadow-lg' : 'bg-white hover:border-slate-400'}">
+                        <div class="flex-grow">
+                            <p class="text-sm font-bold truncate w-full">${eks.judul || 'TANPA JUDUL'}</p>
+                            <p class="text-[11px] font-bold mt-1 ${isSelected ? 'text-slate-300' : 'text-slate-500'}">${eks.kode || '-'}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            pageInfo.textContent = `Halaman ${currentPage} / ${totalPages}`;
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+        }
+
+        searchInput.oninput = () => {
+            const query = searchInput.value.toLowerCase();
+            filteredEkslempar = allEkslempar.filter(item => 
+                (item.judul || "").toLowerCase().includes(query) || 
+                (item.kode || "").toLowerCase().includes(query)
+            );
+            currentPage = 1;
+            renderEkslemparList();
+            updateSelectedCount();
+        };
+
+        document.getElementById('prevPage').onclick = () => { if(currentPage > 1) { currentPage--; renderEkslemparList(); updateSelectedCount(); }};
+        document.getElementById('nextPage').onclick = () => { if(currentPage < Math.ceil(filteredEkslempar.length / itemsPerPage)) { currentPage++; renderEkslemparList(); updateSelectedCount(); }};
+
+        printBtn.onclick = () => {
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = ''; 
+            const headerText = document.getElementById('customHeaderName').value || 'Perpustakaan Lubangsa';
+            
+            const selectedData = allEkslempar.filter(e => selectedEkslemparIds.has(e.id));
+            
+            selectedData.forEach(eks => {
+                const label = document.createElement('div');
+                label.className = 'label-barcode';
+                label.innerHTML = `
+                    <div class="label-header">${headerText}</div>
+                    <div class="label-content">
+                        <div class="label-title-mini">${eks.judul || ''}</div>
+                        <svg class="barcode-svg" id="barcode-${eks.id}"></svg>
+                        <div class="barcode-text">${eks.kode || ''}</div>
+                    </div>
+                `;
+                printArea.appendChild(label);
+                JsBarcode(`#barcode-${eks.id}`, String(eks.kode || '0'), {
+                    format: "CODE128", 
+                    displayValue: false, 
+                    width: 1.6, 
+                    height: 45, 
+                    margin: 0
+                });
+            });
+            setTimeout(() => { window.print(); }, 500);
+        };
+
+        async function initData() {
+            try {
+                const biblioSnap = await db.collection('biblio').orderBy('updatedAt', 'desc').get();
+                const kodeToTimeMap = {};
+                
+                biblioSnap.forEach(doc => {
+                    const data = doc.data();
+                    const time = data.updatedAt?.toMillis() || data.createdAt?.toMillis() || 0;
+                    if (data.kode && Array.isArray(data.kode)) {
+                        data.kode.forEach(k => {
+                            if (!kodeToTimeMap[k]) kodeToTimeMap[k] = time;
+                        });
+                    }
+                });
+
+                db.collection('ekslempar').onSnapshot(snapshot => {
+                    allEkslempar = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        return { 
+                            id: doc.id, 
+                            ...data, 
+                            sortTime: kodeToTimeMap[data.kode] || 0 
+                        };
+                    });
+                    
+                    allEkslempar.sort((a, b) => b.sortTime - a.sortTime);
+                    filteredEkslempar = [...allEkslempar];
+                    
+                    renderEkslemparList();
+                    updateSelectedCount();
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        window.onload = initData;
+    </script>
+</body>
+</html>

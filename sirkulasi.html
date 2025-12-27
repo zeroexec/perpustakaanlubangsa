@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIRKULASI</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root { --bg: #f8fafc; --card: #ffffff; --primary: #2563eb; --text: #0f172a; --border: #f1f5f9; }
+        body.dark-theme { --bg: #020617; --card: #0f172a; --primary: #3b82f6; --text: #f1f5f9; --border: #1e293b; }
+
+        body { 
+            background-color: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif;
+            height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+
+        .glass { background: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px -1px rgba(0,0,0,0.05); }
+        
+        input { 
+            background: var(--bg) !important; color: var(--text) !important; 
+            border: 1.5px solid var(--border) !important; transition: all 0.2s;
+        }
+
+        .autocomplete-container { position: relative; width: 100%; }
+
+        .autocomplete-list { 
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); 
+            border-radius: 1rem;
+            margin-top: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .autocomplete-item { 
+            padding: 12px 16px;
+            transition: all 0.1s ease; 
+            border-bottom: 1px solid var(--border); 
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item.selected { background: rgba(37, 99, 235, 0.1); }
+
+        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; }
+        .toast-msg { background: #0f172a; color: #fff; padding: 6px 16px; border-radius: 99px; font-size: 11px; font-weight: 600; animation: slideUp 0.3s ease-out; }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .kbd-badge { background: rgba(0,0,0,0.05); border-radius: 4px; padding: 1px 5px; font-family: monospace; font-size: 9px; }
+        body.dark-theme .kbd-badge { background: rgba(255,255,255,0.1); }
+
+        #summary-detail, #success-card, #modal-confirm, #modal-date { display: none; }
+    </style>
+</head>
+<body class="p-4">
+
+<div id="toast-container"></div>
+
+<div id="modal-confirm" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div class="glass w-full max-w-xs p-6 rounded-[1.5rem] animate-in zoom-in duration-200">
+        <h4 class="text-md font-extrabold mb-2">Konfirmasi</h4>
+        <p id="modal-text" class="text-xs opacity-60 mb-6"></p>
+        <div class="flex gap-2">
+            <button onclick="closeModal()" class="flex-1 py-3 rounded-xl font-bold text-xs bg-slate-100 dark:bg-slate-800">Batal</button>
+            <button id="modal-confirm-btn" class="flex-1 py-3 rounded-xl font-bold text-xs bg-blue-600 text-white">Ya</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-date" class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div class="glass w-full max-w-xs p-6 rounded-[1.5rem] animate-in zoom-in duration-200">
+        <h4 class="text-md font-extrabold mb-4 text-center">Custom Tanggal Kembali</h4>
+        <input type="date" id="customDatePicker" class="w-full p-4 rounded-xl mb-4 outline-none text-sm">
+        <div class="flex gap-2">
+            <button onclick="closeDateModal()" class="flex-1 py-3 rounded-xl font-bold text-xs bg-slate-100 dark:bg-slate-800">Batal</button>
+            <button id="saveDateBtn" class="flex-1 py-3 rounded-xl font-bold text-xs bg-blue-600 text-white shadow-lg shadow-blue-600/20">Simpan Tanggal</button>
+        </div>
+    </div>
+</div>
+
+<div class="w-full max-w-md">
+    <div id="main-input-area" class="space-y-4">
+        <div class="glass p-6 rounded-[1.5rem]">
+            <div class="flex items-center gap-2 mb-4">
+                <div class="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center text-white text-xs shadow-lg shadow-blue-500/20">
+                    <i class="fas fa-book-reader"></i>
+                </div>
+                <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">Sirkulasi Perpustakaan</h3>
+            </div>
+            
+            <div class="autocomplete-container">
+                <input type="text" id="inputMain" autocomplete="off" placeholder="Cari Anggota / Buku..." class="w-full p-4 rounded-xl outline-none text-sm font-semibold">
+                <div id="listMain" class="autocomplete-list hidden"></div>
+            </div>
+        </div>
+
+        <div id="summary-detail" class="glass p-6 rounded-[1.5rem] border-t-4 border-blue-600 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h4 id="displayNama" class="text-lg font-extrabold tracking-tight"></h4>
+                    <p class="text-[10px] opacity-40 font-mono"><span id="displayNis"></span> &bull; <span id="displayKamar"></span></p>
+                </div>
+                <button onclick="resetKeAwal()" class="text-red-400 hover:text-red-600 transition-colors"><i class="fas fa-times-circle"></i></button>
+            </div>
+
+            <div class="space-y-3">
+                <div class="autocomplete-container">
+                    <input type="text" id="inputBuku" autocomplete="off" placeholder="Scan Kode Buku..." class="w-full p-3 rounded-xl outline-none text-sm">
+                    <div id="listBuku" class="autocomplete-list hidden"></div>
+                </div>
+
+                <div id="bukuTerpilihBox" class="p-3 bg-blue-500/5 rounded-xl border border-blue-500/10 hidden">
+                    <p id="resJudul" class="font-bold text-[11px]"></p>
+                    <p id="resKode" class="text-[9px] opacity-40 font-mono mt-0.5 uppercase"></p>
+                </div>
+
+                <button id="btnProses" class="w-full py-3.5 bg-blue-600 text-white font-extrabold rounded-xl disabled:opacity-20 text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/10" disabled onclick="handleSimpan()">Simpan Transaksi</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="success-card" class="glass p-6 rounded-[1.5rem] border-b-8 border-green-500 animate-in zoom-in-95 duration-300">
+        <div class="text-center mb-4">
+            <div id="iconStatus" class="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-2"></div>
+            <h3 id="statusTitle" class="text-md font-extrabold"></h3>
+        </div>
+
+        <div class="bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-xl mb-6 space-y-2">
+            <div class="text-center border-b border-slate-200 dark:border-slate-800 pb-2">
+                <p id="finalNama" class="font-extrabold text-sm"></p>
+                <p class="text-[8px] opacity-40 uppercase font-bold">Peminjam</p>
+            </div>
+            <div class="text-center pt-1">
+                <p id="finalBuku" class="font-bold text-blue-500 text-xs leading-snug"></p>
+                <p id="finalKode" class="text-[9px] opacity-30 font-mono"></p>
+            </div>
+            <div class="flex justify-between items-center pt-2">
+                <div class="text-left cursor-pointer hover:opacity-70 transition-all" onclick="openDateModal()">
+                    <label class="text-[7px] font-bold uppercase opacity-30">Tanggal Kembali</label>
+                    <p id="finalTgl" class="font-extrabold text-[10px] text-red-500 flex items-center gap-1"></p>
+                </div>
+                <div class="text-right">
+                    <label class="text-[7px] font-bold uppercase opacity-30">Denda</label>
+                    <p id="finalDenda" class="font-extrabold text-[10px] text-orange-500"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="resetKeAwal()" class="col-span-2 py-3 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl font-extrabold text-[10px] flex items-center justify-center gap-2">
+                <span class="kbd-badge">2</span> BARU
+            </button>
+            <button id="btnPerpanjang" class="py-2.5 border border-blue-500/30 text-blue-500 rounded-xl font-extrabold text-[9px] flex items-center justify-center gap-2">
+                <span class="kbd-badge text-blue-500">1</span> PERPANJANG
+            </button>
+            <button id="btnKembali" class="py-2.5 border border-red-500/30 text-red-500 rounded-xl font-extrabold text-[9px] flex items-center justify-center gap-2">
+                <span class="kbd-badge text-red-500">3</span> KEMBALI
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = { apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ", databaseURL: "https://databuku-6385c-default-rtdb.firebaseio.com", projectId: "databuku-6385c" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(), rtdb = firebase.database();
+
+    let dataAnggota = [], allFlatData = [], dataPinjaman = [], selectedAnggota = null, selectedBuku = null, currentLoanDocId = null, currentFocus = -1, currentLoadedDate = null;
+
+    rtdb.ref('settings/dark_mode').on('value', snap => document.body.classList.toggle('dark-theme', snap.val() === true));
+    db.collection("keanggotaan_v2").onSnapshot(s => dataAnggota = s.docs.map(d => ({id: d.id, ...d.data()})));
+    db.collection("peminjaman_v2").where("status", "==", "DIPINJAM").onSnapshot(s => dataPinjaman = s.docs.map(d => ({id: d.id, ...d.data()})));
+    rtdb.ref('data_flat').once('value', s => { const d = s.val(); allFlatData = d ? Object.keys(d).map(k => ({ id: k, ...d[k] })) : []; });
+
+    window.addEventListener('DOMContentLoaded', () => document.getElementById("inputMain").focus());
+    window.addEventListener('keydown', (e) => {
+        if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+        if (document.getElementById('success-card').offsetParent !== null) {
+            if (e.key === '1') document.getElementById('btnPerpanjang').click();
+            if (e.key === '2') resetKeAwal();
+            if (e.key === '3') document.getElementById('btnKembali').click();
+        }
+    });
+
+    function showToast(msg) {
+        const t = document.createElement('div'); t.className = 'toast-msg'; t.textContent = msg;
+        document.getElementById('toast-container').appendChild(t);
+        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2500);
+    }
+
+    function openModal(text, onConfirm, triggerBtnId) {
+        document.getElementById('modal-text').textContent = text;
+        const cb = document.getElementById('modal-confirm-btn');
+        cb.disabled = false; document.getElementById('modal-confirm').style.display = 'flex'; cb.focus();
+        cb.onclick = async () => { cb.disabled = true; if(triggerBtnId) document.getElementById(triggerBtnId).disabled = true; await onConfirm(); closeModal(); };
+    }
+    function closeModal() { document.getElementById('modal-confirm').style.display = 'none'; }
+
+    function openDateModal() {
+        if(!currentLoanDocId) return;
+        const dateString = currentLoadedDate.toISOString().split('T')[0];
+        document.getElementById('customDatePicker').value = dateString;
+        document.getElementById('modal-date').style.display = 'flex';
+        document.getElementById('saveDateBtn').onclick = handleCustomDate;
+    }
+    function closeDateModal() { document.getElementById('modal-date').style.display = 'none'; }
+
+    async function handleCustomDate() {
+        const newDateVal = document.getElementById('customDatePicker').value;
+        if(!newDateVal) return;
+        const btn = document.getElementById('saveDateBtn');
+        btn.disabled = true; btn.textContent = "...";
+        try {
+            const dateObj = new Date(newDateVal);
+            await db.collection("peminjaman_v2").doc(currentLoanDocId).update({
+                tgl_kembali: firebase.firestore.Timestamp.fromDate(dateObj)
+            });
+            showToast("Tanggal Diubah");
+            currentLoadedDate = dateObj;
+            renderSuccessData(dateObj);
+            closeDateModal();
+        } catch(e) { showToast("Gagal!"); }
+        btn.disabled = false; btn.textContent = "Simpan Tanggal";
+    }
+
+    const inM = document.getElementById("inputMain"), lsM = document.getElementById("listMain");
+    inM.addEventListener('input', () => {
+        const q = inM.value.toLowerCase(); lsM.innerHTML = ''; currentFocus = -1;
+        if(q.length < 1) return lsM.classList.add('hidden');
+        const mA = dataAnggota.filter(a => (a.keanggotaan||"").toLowerCase().includes(q) || (a.id||"").toLowerCase().includes(q) || (a.kamarSantri||"").toLowerCase().includes(q)).slice(0, 5);
+        const mP = dataPinjaman.filter(p => (p.judul_buku||"").toLowerCase().includes(q) || (p.kode_ekslempar||"").toLowerCase().includes(q)).slice(0, 5);
+        
+        if(mA.length) {
+            const h = document.createElement('div'); h.className = 'px-4 py-2 text-[9px] font-bold opacity-30 uppercase bg-slate-50 dark:bg-slate-800'; h.textContent = 'Anggota'; lsM.appendChild(h);
+            mA.forEach(a => {
+                const d = document.createElement('div'); d.className = 'autocomplete-item';
+                d.innerHTML = `<b>${a.keanggotaan}</b> <span class='opacity-40 font-mono'>(${a.kamarSantri||'-'})</span>`;
+                d.onclick = () => { selectedAnggota = a; checkActiveLoan(a); }; lsM.appendChild(d);
+            });
+        }
+        if(mP.length) {
+            const h = document.createElement('div'); h.className = 'px-4 py-2 text-[9px] font-bold opacity-30 uppercase bg-slate-50 dark:bg-slate-800'; h.textContent = 'Pinjaman Aktif'; lsM.appendChild(h);
+            mP.forEach(p => {
+                const d = document.createElement('div'); d.className = 'autocomplete-item border-l-4 border-blue-600';
+                d.innerHTML = `<b class='text-blue-600'>${p.judul_buku}</b><br><small class='opacity-50 font-bold'>${p.nama_anggota}</small>`;
+                d.onclick = () => { currentLoanDocId = p.id; showSuccessCard(p.nama_anggota, p.judul_buku, p.kode_ekslempar, p.tgl_kembali.toDate(), true); lsM.classList.add('hidden'); };
+                lsM.appendChild(d);
+            });
+        }
+        lsM.classList.toggle('hidden', (mA.length + mP.length) === 0);
+    });
+
+    async function checkActiveLoan(a) {
+        lsM.classList.add('hidden'); inM.value = a.keanggotaan;
+        const s = await db.collection("peminjaman_v2").where("anggota_id", "==", a.id).where("status", "==", "DIPINJAM").limit(1).get();
+        if(!s.empty) { currentLoanDocId = s.docs[0].id; showSuccessCard(a.keanggotaan, s.docs[0].data().judul_buku, s.docs[0].data().kode_ekslempar, s.docs[0].data().tgl_kembali.toDate(), true); }
+        else tampilkanDetail();
+    }
+
+    const inB = document.getElementById("inputBuku"), lsB = document.getElementById("listBuku");
+    inB.addEventListener('input', () => {
+        const q = inB.value.toLowerCase(); lsB.innerHTML = ''; if(q.length < 1) return lsB.classList.add('hidden');
+        const m = allFlatData.filter(i => (i.judul||"").toLowerCase().includes(q) || (i.kode||"").toLowerCase().includes(q)).slice(0, 5);
+        m.forEach(i => {
+            const d = document.createElement('div'); d.className = 'autocomplete-item';
+            let c = (i.kode?i.kode.split(',')[0]:"-").trim(); d.innerHTML = `<b>${c}</b><br><small class='opacity-50'>${i.judul}</small>`;
+            d.onclick = () => { selectedBuku = { kode: c, judul: i.judul }; inB.value = c; lsB.classList.add('hidden'); tampilkanBuku(); }; lsB.appendChild(d);
+        });
+        lsB.classList.toggle('hidden', m.length === 0);
+    });
+
+    function setupK(i, l, e) {
+        i.addEventListener("keydown", function(k) {
+            let s = document.getElementById(l).getElementsByClassName("autocomplete-item");
+            if (k.keyCode == 40) { currentFocus++; addA(s); } else if (k.keyCode == 38) { currentFocus--; addA(s); } 
+            else if (k.keyCode == 13) { k.preventDefault(); if (currentFocus > -1 && s[currentFocus]) s[currentFocus].click(); else if (e) e(); }
+        });
+        function addA(s) { 
+            if (!s || s.length === 0) return; 
+            for (let x of s) x.classList.remove("selected"); 
+            if (currentFocus >= s.length) currentFocus = 0; 
+            if (currentFocus < 0) currentFocus = s.length - 1; 
+            s[currentFocus].classList.add("selected"); 
+            s[currentFocus].scrollIntoView({ block: "nearest" });
+        }
+    }
+    setupK(inM, "listMain"); setupK(inB, "listBuku", () => { if(!document.getElementById("btnProses").disabled) handleSimpan(); });
+
+    function tampilkanDetail() {
+        document.getElementById("displayNama").textContent = selectedAnggota.keanggotaan;
+        document.getElementById("displayNis").textContent = selectedAnggota.id;
+        document.getElementById("displayKamar").textContent = selectedAnggota.kamarSantri || '-';
+        document.getElementById("summary-detail").style.display = 'block'; setTimeout(() => inB.focus(), 100);
+    }
+    function tampilkanBuku() {
+        document.getElementById("bukuTerpilihBox").classList.remove('hidden'); document.getElementById("resJudul").textContent = selectedBuku.judul;
+        document.getElementById("resKode").textContent = selectedBuku.kode; document.getElementById("btnProses").disabled = false; document.getElementById("btnProses").focus();
+    }
+    function resetKeAwal() {
+        document.getElementById("success-card").style.display = 'none'; document.getElementById("summary-detail").style.display = 'none';
+        document.getElementById("main-input-area").style.display = 'block'; document.getElementById("bukuTerpilihBox").classList.add('hidden');
+        inM.value = ''; inB.value = ''; selectedAnggota = null; selectedBuku = null; currentLoanDocId = null; currentLoadedDate = null;
+        document.getElementById("btnProses").disabled = true; document.getElementById("btnPerpanjang").disabled = false;
+        document.getElementById("btnKembali").disabled = false; setTimeout(() => inM.focus(), 50);
+    }
+
+    function renderSuccessData(t) {
+        const now = new Date(); now.setHours(0,0,0,0);
+        const tempo = new Date(t); tempo.setHours(0,0,0,0); 
+        const diff = Math.ceil((now - tempo) / (1000 * 60 * 60 * 24));
+        document.getElementById("finalTgl").innerHTML = `${t.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} <i class="fas fa-edit opacity-30 text-[8px]"></i>`;
+        document.getElementById("finalDenda").textContent = diff > 0 ? "Rp " + (diff * 1000).toLocaleString() : "Rp 0";
+    }
+
+    function showSuccessCard(n, j, k, t, e = false) {
+        currentLoadedDate = t;
+        document.getElementById("main-input-area").style.display = 'none'; document.getElementById("summary-detail").style.display = 'none';
+        document.getElementById("success-card").style.display = 'block'; 
+        document.getElementById("statusTitle").textContent = e ? "Info Pinjaman" : "Berhasil";
+        document.getElementById("iconStatus").className = `w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-2 ${e ? 'bg-blue-600 text-white' : 'bg-green-500 text-white'}`;
+        document.getElementById("iconStatus").innerHTML = `<i class="fas ${e ? 'fa-info' : 'fa-check'} text-xl"></i>`;
+        document.getElementById("finalNama").textContent = n; document.getElementById("finalBuku").textContent = j;
+        document.getElementById("finalKode").textContent = k; 
+        renderSuccessData(t);
+        document.getElementById("btnPerpanjang").onclick = () => openModal("Perpanjang 4 hari?", handlePerpanjang, "btnPerpanjang");
+        document.getElementById("btnKembali").onclick = () => openModal("Kembalikan buku?", handleKembali, "btnKembali");
+    }
+
+    async function handleSimpan() {
+        const b = document.getElementById("btnProses"); b.disabled = true;
+        try {
+            const tk = new Date(); tk.setDate(tk.getDate() + 4);
+            const doc = await db.collection("peminjaman_v2").add({ anggota_id: selectedAnggota.id, nama_anggota: selectedAnggota.keanggotaan, kode_ekslempar: selectedBuku.kode, judul_buku: selectedBuku.judul, tgl_pinjam: firebase.firestore.Timestamp.fromDate(new Date()), tgl_kembali: firebase.firestore.Timestamp.fromDate(tk), status: "DIPINJAM" });
+            currentLoanDocId = doc.id; showToast("Berhasil!"); showSuccessCard(selectedAnggota.keanggotaan, selectedBuku.judul, selectedBuku.kode, tk);
+        } catch(e) { b.disabled = false; showToast("Gagal!"); }
+    }
+    async function handlePerpanjang() {
+        const tb = new Date(); tb.setDate(tb.getDate() + 4);
+        try { 
+            await db.collection("peminjaman_v2").doc(currentLoanDocId).update({ tgl_kembali: firebase.firestore.Timestamp.fromDate(tb) }); 
+            showToast("Diperpanjang!"); currentLoadedDate = tb; renderSuccessData(tb);
+            document.getElementById("btnPerpanjang").disabled = false; 
+        } catch(e) { showToast("Gagal!"); }
+    }
+    async function handleKembali() { try { await db.collection("peminjaman_v2").doc(currentLoanDocId).update({ status: "KEMBALI", tgl_dikembalikan: firebase.firestore.FieldValue.serverTimestamp() }); showToast("Kembali!"); setTimeout(() => resetKeAwal(), 500); } catch(e) { showToast("Gagal!"); } }
+</script>
+</body>
+</html>

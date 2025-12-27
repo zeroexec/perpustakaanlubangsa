@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Bibliografi</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        :root {
+            --color-gradient-start: #2563eb; 
+            --color-gradient-end: #3b82f6; 
+            --color-primary-light: #eff6ff; 
+            --color-primary-border: #bfdbfe; 
+            --color-primary-text: #1e40af;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --border-color: #e2e8f0;
+            --input-bg: #ffffff;
+            --input-text: #1e293b;
+            --modal-bg: #ffffff;
+            --splash-bg: #ffffff;
+        }
+
+        [data-theme="dark"] {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f1f5f9;
+            --text-sub: #94a3b8;
+            --border-color: #334155;
+            --input-bg: #334155;
+            --input-text: #f8fafc;
+            --modal-bg: #1e293b;
+            --splash-bg: #0f172a;
+            --color-primary-light: #1e3a8a;
+            --color-primary-border: #2563eb;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        #initialSplash {
+            position: fixed;
+            inset: 0;
+            background: var(--splash-bg);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+
+        .splash-bar-bg {
+            width: 200px;
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        #splashProgress {
+            width: 0%;
+            height: 100%;
+            background: var(--color-gradient-start);
+            transition: width 0.3s ease;
+        }
+
+        .bg-primary-gradient { 
+            background-image: linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end)); 
+        }
+        
+        .text-primary-gradient {
+            background-image: linear-gradient(to right, var(--color-gradient-start), var(--color-gradient-end));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .biblio-item {
+            background-color: var(--bg-card);
+            border-color: var(--border-color);
+        }
+        
+        .biblio-item.selected {
+            border-left: 8px solid var(--color-gradient-start);
+            background-color: var(--color-primary-light);
+        }
+
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--modal-bg);
+            border-top-left-radius: 1.5rem;
+            border-top-right-radius: 1.5rem;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 60;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            color: var(--text-main);
+        }
+
+        .bottom-sheet.active {
+            transform: translateY(0);
+        }
+
+        .bottom-sheet.hidden-temp {
+            display: none !important;
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s;
+            z-index: 50;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #loadingOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.7);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        input, textarea {
+            background-color: var(--input-bg) !important;
+            color: var(--input-text) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: var(--text-sub);
+            opacity: 0.7;
+        }
+
+        .pagination-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-sub);
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: var(--color-primary-light);
+            color: var(--color-gradient-start);
+            border-color: var(--color-primary-border);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+    </style>
+</head>
+<body class="p-3">
+
+    <div id="initialSplash">
+        <h2 class="text-xl font-bold" style="color: var(--text-main)">Memuat Data...</h2>
+        <div class="splash-bar-bg">
+            <div id="splashProgress"></div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay">
+        <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+        <p class="text-xs font-bold text-white uppercase tracking-widest">Memproses...</p>
+    </div>
+
+    <div class="w-full mx-auto p-6 rounded-xl shadow-sm border" style="background-color: var(--bg-card); border-color: var(--border-color);"> 
+        <div class="flex justify-between items-center mb-6 border-b pb-4" style="border-color: var(--border-color);">
+            <h1 class="text-3xl font-bold"><span class="text-primary-gradient">Daftar Bibliografi</span></h1>
+            <div class="flex gap-2">
+                <button onclick="openEditModal(null)" class="bg-primary-gradient hover:opacity-90 text-white font-bold py-2 px-5 rounded-full transition shadow-lg flex items-center space-x-2 text-sm">
+                    <span>+ Tambah Baru</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="mb-6 p-4 border rounded-2xl" style="background-color: var(--color-primary-light); border-color: var(--color-primary-border);">
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-gradient-start)">Pencarian Cepat</label>
+                <input type="text" id="filterInput" placeholder="Cari judul, penulis atau kode..." class="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div id="syncProgressBarContainer" class="mt-2 h-1 bg-blue-100 rounded-full overflow-hidden">
+                <div id="syncProgressBar" class="h-full bg-blue-600 w-0 transition-all duration-300"></div>
+            </div>
+        </div>
+
+        <div id="dataListContainer" class="space-y-3 min-h-[200px]"></div>
+
+        <div id="paginationControls" class="flex items-center justify-between mt-8 px-1">
+            <div class="flex gap-1">
+                <button id="firstPage" class="pagination-btn"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg></button>
+                <button id="prevPage" class="pagination-btn"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
+            </div>
+            <div class="flex flex-col items-center">
+                <span id="pageIndicator" class="text-sm font-bold" style="color: var(--text-main)">Hal 1 / 1</span>
+                <span id="totalDataIndicator" class="text-[9px] font-bold uppercase tracking-tighter mt-1" style="color: var(--text-sub)">0 Total Buku</span>
+            </div>
+            <div class="flex gap-1">
+                <button id="nextPage" class="pagination-btn"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
+                <button id="lastPage" class="pagination-btn"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7m-8 0l7 7-7 7"/></svg></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="selectionBar" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl z-40 hidden flex items-center space-x-6">
+        <span id="selectedCount" class="text-sm font-medium">0 terpilih</span>
+        <div class="flex space-x-2">
+            <button onclick="handleBatchDelete()" class="bg-red-600 hover:bg-red-500 px-4 py-1 rounded-full text-sm font-bold">Hapus</button>
+            <button onclick="clearSelection()" class="text-slate-400 hover:text-white text-sm">Batal</button>
+        </div>
+    </div>
+
+    <div id="modalOverlay" class="overlay" onclick="closeAllModals()"></div>
+
+    <div id="editModal" class="bottom-sheet">
+        <div class="px-6 pt-4 pb-2">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold" id="modalTitle">Detail Bibliografi</h2>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
+            </div>
+        </div>
+        <div class="overflow-y-auto px-6 pb-8 custom-scrollbar">
+            <form id="editBiblioForm" class="space-y-5">
+                <input type="hidden" id="editDocId">
+                <div class="flex flex-col gap-4">
+                    <div><label class="text-sm font-semibold">Judul *</label><input type="text" id="editJudul" required class="w-full p-2.5 border rounded-xl outline-none"></div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label class="text-sm font-semibold">Penulis</label><input type="text" id="editPenulis" class="w-full p-2.5 border rounded-xl outline-none"></div>
+                        <div><label class="text-sm font-semibold">ISBN/ISSN</label><input type="text" id="editISBNISSN" class="w-full p-2.5 border rounded-xl outline-none"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label class="text-sm font-semibold">Penerbit</label><input type="text" id="editPenerbit" class="w-full p-2.5 border rounded-xl outline-none"></div>
+                        <div><label class="text-sm font-semibold">Tahun</label><input type="text" id="editTahunTerbit" class="w-full p-2.5 border rounded-xl outline-none"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label class="text-sm font-semibold">Nomor Panggil</label><input type="text" id="editNomorPanggil" class="w-full p-2.5 border rounded-xl outline-none"></div>
+                        <div><label class="text-sm font-semibold">Deskripsi Fisik</label><input type="text" id="editDeskripsiFisik" class="w-full p-2.5 border rounded-xl outline-none"></div>
+                    </div>
+                    <div><label class="text-sm font-semibold">URL Sampul</label><input type="url" id="editSampulUrl" class="w-full p-2.5 border rounded-xl outline-none"></div>
+                    <div>
+                        <label class="text-sm font-semibold">Abstrak / Catatan</label>
+                        <textarea id="editAbstrak" rows="3" class="w-full p-2.5 border rounded-xl outline-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold">Topik</label>
+                        <div class="flex gap-2 mt-1">
+                            <input type="text" id="newTopikInput" placeholder="Tambah topik..." class="flex-grow p-2.5 border rounded-xl outline-none">
+                            <button type="button" id="addTopikBtn" class="bg-blue-600 text-white px-4 rounded-xl">Tambah</button>
+                        </div>
+                        <div id="topikTagsContainer" class="flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+                </div>
+                <div id="ekslemparSection" class="mt-6 border-t pt-4" style="border-color: var(--border-color);">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold">Data Ekslempar</h3>
+                        <button type="button" onclick="openAddChildModal()" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold"> + Ekslempar</button>
+                    </div>
+                    <div id="ekslemparTagsContainer" class="flex flex-wrap gap-2"></div>
+                </div>
+                <div class="pt-6">
+                    <button type="submit" id="modalSaveBtn" class="w-full bg-primary-gradient text-white font-bold py-3 rounded-xl shadow-lg">Simpan Bibliografi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editChildModal" class="bottom-sheet" style="z-index: 70;">
+        <div class="px-6 pt-4 pb-2"><h2 class="text-lg font-bold">Detail Ekslempar</h2></div>
+        <div class="px-6 pb-8">
+            <form id="editChildForm" class="space-y-4">
+                <input type="hidden" id="editChildId">
+                <input type="hidden" id="child_original_kode_ref">
+                <div class="flex flex-col gap-4">
+                    <div>
+                        <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-sub)">Kode Ekslempar *</label>
+                        <input type="text" id="child_edit_kode_ref" required class="w-full p-2.5 border rounded-xl outline-none">
+                        <p id="duplicateError" class="hidden text-red-600 text-[10px] font-bold mt-1.5">KODE SUDAH DIGUNAKAN</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-sub)">Lokasi Rak</label>
+                        <input type="text" id="child_edit_lokasi" class="w-full p-2.5 border rounded-xl outline-none">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="submit" id="childSaveBtn" class="flex-grow bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg disabled:bg-slate-400">Simpan</button>
+                    <button type="button" onclick="closeEditChildModal()" class="flex-grow bg-slate-100 text-slate-600 font-bold py-3 rounded-xl">Batal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ",
+            authDomain: "databuku-6385c.firebaseapp.com",
+            databaseURL: "https://databuku-6385c-default-rtdb.firebaseio.com",
+            projectId: "databuku-6385c",
+            storageBucket: "databuku-6385c.firebasestorage.app",
+            messagingSenderId: "844439345466",
+            appId: "1:844439345466:web:fb90dfc8337a96f0621803"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const rtdb = firebase.database();
+        const FieldValue = firebase.firestore.FieldValue;
+
+        let globalBiblioList = [], currentDisplayList = [], currentTopikTags = [], selectedIds = [];
+        let ekslemparDataMap = new Map();
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        let isInitialDataLoaded = { ekslempar: false, biblio: false };
+
+        function setupDarkModeSync() {
+            rtdb.ref('settings/dark_mode').on('value', (snapshot) => {
+                if (snapshot.val()) document.documentElement.setAttribute('data-theme', 'dark');
+                else document.documentElement.removeAttribute('data-theme');
+            });
+        }
+
+        function updateSplashProgress() {
+            const bar = document.getElementById('splashProgress');
+            let progress = 0;
+            if (isInitialDataLoaded.ekslempar) progress += 50;
+            if (isInitialDataLoaded.biblio) progress += 50;
+            bar.style.width = progress + '%';
+            if (progress >= 100) {
+                setTimeout(() => {
+                    document.getElementById('initialSplash').style.opacity = '0';
+                    document.getElementById('initialSplash').style.visibility = 'hidden';
+                }, 500);
+            }
+        }
+
+        function showLoading() { document.getElementById('loadingOverlay').style.display = 'flex'; }
+        function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
+
+        async function syncFlatDataToRTDB(biblioList) {
+            const progressBar = document.getElementById('syncProgressBar');
+            const flatRef = rtdb.ref('data_flat');
+            const rtdbSnap = await flatRef.get();
+            const rtdbData = rtdbSnap.exists() ? rtdbSnap.val() : {};
+            let processed = 0;
+            const total = biblioList.length;
+            const now = Date.now();
+            
+            for (const b of biblioList) {
+                const flatData = { 
+                    judul: b.judul || '', 
+                    penulis: b.penulis || '', 
+                    kode: Array.isArray(b.kode) ? b.kode.join(', ') : '',
+                    last_sync_timestamp: now
+                };
+                
+                const existing = rtdbData[b.id];
+                if (!existing || existing.judul !== flatData.judul || existing.penulis !== flatData.penulis || existing.kode !== flatData.kode) {
+                    await flatRef.child(b.id).set(flatData);
+                }
+                processed++;
+                if(progressBar) progressBar.style.width = (processed / total * 100) + '%';
+            }
+            if(progressBar) setTimeout(() => { progressBar.style.width = '0%'; }, 1000);
+            renderData();
+        }
+
+        function openEditModal(biblioId = null) {
+            document.body.classList.add('modal-open');
+            document.getElementById('modalOverlay').classList.add('active');
+            const modal = document.getElementById('editModal');
+            modal.classList.add('active');
+            modal.classList.remove('hidden-temp');
+            if (!biblioId) {
+                document.getElementById('editDocId').value = 'NEW';
+                document.getElementById('editBiblioForm').reset();
+                currentTopikTags = [];
+                renderTopikTags();
+                document.getElementById('ekslemparSection').classList.add('hidden');
+            } else {
+                const b = globalBiblioList.find(x => x.id === biblioId);
+                document.getElementById('editDocId').value = b.id;
+                document.getElementById('editJudul').value = b.judul || '';
+                document.getElementById('editPenulis').value = b.penulis || '';
+                document.getElementById('editISBNISSN').value = b.isbn_issn || '';
+                document.getElementById('editPenerbit').value = b.penerbit || '';
+                document.getElementById('editTahunTerbit').value = b.tahun_terbit || '';
+                document.getElementById('editNomorPanggil').value = b.nomor_panggil || '';
+                document.getElementById('editDeskripsiFisik').value = b.deskripsi_fisik || '';
+                document.getElementById('editAbstrak').value = b.abstrak || '';
+                document.getElementById('editSampulUrl').value = b.sampul_url || '';
+                currentTopikTags = parseAndCleanTopics(b.topik);
+                renderTopikTags();
+                document.getElementById('ekslemparSection').classList.remove('hidden');
+                refreshEkslemparTagsInModal(b.id);
+            }
+        }
+
+        function refreshEkslemparTagsInModal(biblioId) {
+            const b = globalBiblioList.find(x => x.id === biblioId);
+            if (!b) return;
+            const codes = Array.isArray(b.kode) ? b.kode : [];
+            const children = [];
+            codes.forEach(code => { if (ekslemparDataMap.has(code)) children.push(...ekslemparDataMap.get(code)); });
+            renderEkslemparTags(biblioId, children);
+        }
+
+        function renderEkslemparTags(biblioId, children) {
+            const container = document.getElementById('ekslemparTagsContainer');
+            container.innerHTML = children.map(c => `
+                <div class="flex items-center border rounded-lg px-3 py-1.5 cursor-pointer" style="background-color: var(--input-bg); border-color: var(--border-color);" onclick="openEditChildModal('${c.id}')">
+                    <div class="mr-3">
+                        <p class="text-[10px] font-bold text-blue-500 uppercase">${c.kode}</p>
+                        <p class="text-[9px]" style="color: var(--text-sub)">${c.lokasi_rak || '-'}</p>
+                    </div>
+                    <button type="button" onclick="event.stopPropagation(); deleteEkslempar('${biblioId}','${c.id}','${c.kode}')" class="text-slate-400 hover:text-red-500 text-lg">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        async function deleteEkslempar(biblioId, childId, kode) {
+            if (confirm(`Hapus ekslempar ${kode}?`)) {
+                showLoading();
+                await db.collection('ekslempar').doc(childId).delete();
+                await db.collection('biblio').doc(biblioId).update({ kode: FieldValue.arrayRemove(kode), updatedAt: FieldValue.serverTimestamp() });
+                hideLoading();
+            }
+        }
+
+        function openAddChildModal() {
+            document.getElementById('editModal').classList.add('hidden-temp');
+            document.getElementById('editChildForm').reset();
+            document.getElementById('editChildId').value = 'NEW_CHILD';
+            document.getElementById('child_original_kode_ref').value = '';
+            document.getElementById('duplicateError').classList.add('hidden');
+            document.getElementById('childSaveBtn').disabled = false;
+            document.getElementById('editChildModal').classList.add('active');
+        }
+
+        function openEditChildModal(childId) {
+            const biblioId = document.getElementById('editDocId').value;
+            const b = globalBiblioList.find(x => x.id === biblioId);
+            const codes = Array.isArray(b.kode) ? b.kode : [];
+            let child = null;
+            for (const code of codes) {
+                const found = (ekslemparDataMap.get(code) || []).find(c => c.id === childId);
+                if (found) { child = found; break; }
+            }
+            if (child) {
+                document.getElementById('editModal').classList.add('hidden-temp');
+                document.getElementById('editChildId').value = child.id;
+                document.getElementById('child_edit_kode_ref').value = child.kode || '';
+                document.getElementById('child_edit_lokasi').value = child.lokasi_rak || '';
+                document.getElementById('child_original_kode_ref').value = child.kode || '';
+                document.getElementById('duplicateError').classList.add('hidden');
+                document.getElementById('editChildModal').classList.add('active');
+            }
+        }
+
+        function closeEditChildModal() {
+            document.getElementById('editChildModal').classList.remove('active');
+            document.getElementById('editModal').classList.remove('hidden-temp');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.body.classList.remove('modal-open');
+        }
+
+        function closeAllModals() { closeEditModal(); closeEditChildModal(); }
+
+        function parseAndCleanTopics(topics) {
+            if (!topics) return [];
+            if (Array.isArray(topics)) return topics.map(t => t.replace(/[<>]/g, '').trim());
+            return [...new Set([...topics.matchAll(/<([^>]+)>/g)].map(m => m[1].trim()))];
+        }
+
+        function renderTopikTags() {
+            document.getElementById('topikTagsContainer').innerHTML = currentTopikTags.map(t => `
+                <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center">
+                    ${t} <button type="button" onclick="removeTopik('${t}')" class="ml-2">&times;</button>
+                </span>
+            `).join('');
+        }
+
+        function removeTopik(t) { currentTopikTags = currentTopikTags.filter(x => x !== t); renderTopikTags(); }
+        
+        function addTopik() {
+            const input = document.getElementById('newTopikInput');
+            const val = input.value.trim();
+            if (val && !currentTopikTags.includes(val)) {
+                currentTopikTags.push(val);
+                renderTopikTags();
+                input.value = '';
+            }
+        }
+        document.getElementById('addTopikBtn').onclick = addTopik;
+
+        function handleSearchChange() {
+            const query = document.getElementById('filterInput').value.toLowerCase();
+            currentDisplayList = globalBiblioList.filter(b => {
+                const text = `${b.judul} ${b.penulis} ${Array.isArray(b.kode) ? b.kode.join(' ') : ''}`.toLowerCase();
+                return text.includes(query);
+            });
+            currentDisplayList.sort((a, b) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0));
+            currentPage = 1;
+            renderData();
+        }
+
+        function renderData() {
+            const container = document.getElementById('dataListContainer');
+            const totalItems = currentDisplayList.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+            const paginatedItems = currentDisplayList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+            document.getElementById('pageIndicator').innerText = `Hal ${currentPage} / ${totalPages}`;
+            document.getElementById('totalDataIndicator').innerText = `${totalItems} Total Buku`;
+            document.getElementById('firstPage').disabled = currentPage === 1;
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage === totalPages;
+            document.getElementById('lastPage').disabled = currentPage === totalPages;
+            container.innerHTML = paginatedItems.map(b => `
+                <div onclick="toggleSelect('${b.id}')" class="biblio-item ${selectedIds.includes(b.id) ? 'selected' : ''} p-4 rounded-2xl border shadow-sm flex gap-4 cursor-pointer relative transition">
+                    <div class="w-12 h-16 bg-slate-200 rounded-lg flex-shrink-0 overflow-hidden border">
+                        ${b.sampul_url ? `<img src="${b.sampul_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px] text-slate-500">NO IMG</div>`}
+                    </div>
+                    <div class="flex-grow min-w-0">
+                        <h3 class="font-bold truncate text-sm" style="color: var(--text-main)">${b.judul || 'Tanpa Judul'}</h3>
+                        <p class="text-[11px]" style="color: var(--text-sub)">${b.penulis || '-'}</p>
+                        <div class="mt-2"><span class="text-[10px] px-2 py-0.5 rounded font-medium" style="background-color: var(--border-color); color: var(--text-main)">${Array.isArray(b.kode) ? b.kode.length : 0} Ekslempar</span></div>
+                    </div>
+                    <button onclick="event.stopPropagation(); openEditModal('${b.id}')" class="self-center bg-blue-600 text-white p-2 rounded-xl">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
+                </div>
+            `).join('');
+            updateSelectionBar();
+        }
+
+        function toggleSelect(id) {
+            const idx = selectedIds.indexOf(id);
+            if (idx > -1) selectedIds.splice(idx, 1); else selectedIds.push(id);
+            renderData();
+        }
+
+        function clearSelection() { selectedIds = []; renderData(); }
+        function updateSelectionBar() {
+            if (selectedIds.length > 0) {
+                document.getElementById('selectionBar').classList.remove('hidden');
+                document.getElementById('selectedCount').innerText = `${selectedIds.length} terpilih`;
+            } else document.getElementById('selectionBar').classList.add('hidden');
+        }
+
+        async function performCascadingDelete(biblioId) {
+            const b = globalBiblioList.find(x => x.id === biblioId);
+            if (!b || !Array.isArray(b.kode)) return;
+            const batch = db.batch();
+            for (const kode of b.kode) {
+                const eksSnap = await db.collection('ekslempar').where('kode', '==', kode).get();
+                eksSnap.forEach(doc => batch.delete(doc.ref));
+            }
+            batch.delete(db.collection('biblio').doc(biblioId));
+            await batch.commit();
+        }
+
+        async function handleBatchDelete() {
+            if (confirm(`Hapus ${selectedIds.length} data biblio beserta semua ekslemparnya?`)) {
+                showLoading();
+                for (const id of selectedIds) {
+                    await performCascadingDelete(id);
+                }
+                selectedIds = [];
+                hideLoading();
+            }
+        }
+
+        document.getElementById('firstPage').onclick = () => { if(currentPage > 1) { currentPage = 1; renderData(); }};
+        document.getElementById('prevPage').onclick = () => { if(currentPage > 1) { currentPage--; renderData(); }};
+        document.getElementById('nextPage').onclick = () => { if(currentPage < Math.ceil(currentDisplayList.length/itemsPerPage)) { currentPage++; renderData(); }};
+        document.getElementById('lastPage').onclick = () => { currentPage = Math.ceil(currentDisplayList.length/itemsPerPage); renderData(); };
+
+        async function saveBiblio() {
+            showLoading();
+            const id = document.getElementById('editDocId').value;
+            const data = {
+                judul: document.getElementById('editJudul').value.trim(),
+                penulis: document.getElementById('editPenulis').value.trim(),
+                isbn_issn: document.getElementById('editISBNISSN').value.trim(),
+                penerbit: document.getElementById('editPenerbit').value.trim(),
+                tahun_terbit: document.getElementById('editTahunTerbit').value.trim(),
+                nomor_panggil: document.getElementById('editNomorPanggil').value.trim(),
+                deskripsi_fisik: document.getElementById('editDeskripsiFisik').value.trim(),
+                abstrak: document.getElementById('editAbstrak').value.trim(),
+                sampul_url: document.getElementById('editSampulUrl').value.trim(),
+                topik: currentTopikTags.map(t => `<${t}>`),
+                updatedAt: FieldValue.serverTimestamp()
+            };
+            if (id === 'NEW') {
+                data.createdAt = FieldValue.serverTimestamp();
+                data.kode = [];
+                await db.collection('biblio').add(data);
+            } else await db.collection('biblio').doc(id).update(data);
+            closeEditModal();
+            hideLoading();
+        }
+
+        document.getElementById('editBiblioForm').onsubmit = (e) => {
+            e.preventDefault();
+            saveBiblio();
+        };
+
+        document.getElementById('editChildForm').onsubmit = async (e) => {
+            e.preventDefault();
+            showLoading();
+            const biblioId = document.getElementById('editDocId').value;
+            const childId = document.getElementById('editChildId').value;
+            const kodeBaru = document.getElementById('child_edit_kode_ref').value.trim();
+            const lokasi = document.getElementById('child_edit_lokasi').value.trim();
+            const judulBuku = document.getElementById('editJudul').value.trim();
+            try {
+                if (childId === 'NEW_CHILD') {
+                    await db.collection('ekslempar').add({ 
+                        kode: kodeBaru, 
+                        lokasi_rak: lokasi, 
+                        judul: judulBuku,
+                        createdAt: FieldValue.serverTimestamp(), 
+                        updatedAt: FieldValue.serverTimestamp() 
+                    });
+                    await db.collection('biblio').doc(biblioId).update({ kode: FieldValue.arrayUnion(kodeBaru), updatedAt: FieldValue.serverTimestamp() });
+                } else {
+                    const original = document.getElementById('child_original_kode_ref').value;
+                    await db.collection('ekslempar').doc(childId).update({ 
+                        kode: kodeBaru, 
+                        lokasi_rak: lokasi, 
+                        judul: judulBuku,
+                        updatedAt: FieldValue.serverTimestamp() 
+                    });
+                    if (original !== kodeBaru) {
+                        await db.collection('biblio').doc(biblioId).update({ kode: FieldValue.arrayRemove(original) });
+                        await db.collection('biblio').doc(biblioId).update({ kode: FieldValue.arrayUnion(kodeBaru), updatedAt: FieldValue.serverTimestamp() });
+                    }
+                }
+                closeEditChildModal();
+            } catch (err) { alert(err.message); } finally { hideLoading(); }
+        };
+
+        async function cleanupOrphanedEkslempar() {
+            const eksSnap = await db.collection('ekslempar').get();
+            const biblioSnap = await db.collection('biblio').get();
+            const allBiblioCodes = new Set();
+            biblioSnap.forEach(doc => {
+                const codes = doc.data().kode || [];
+                codes.forEach(c => allBiblioCodes.add(c));
+            });
+            const batch = db.batch();
+            let count = 0;
+            eksSnap.forEach(doc => {
+                if (!allBiblioCodes.has(doc.data().kode)) {
+                    batch.delete(doc.ref);
+                    count++;
+                }
+            });
+            if (count > 0) await batch.commit();
+        }
+
+        function initialize() {
+            setupDarkModeSync();
+            cleanupOrphanedEkslempar();
+
+            document.getElementById('editBiblioForm').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (document.activeElement.id === 'newTopikInput') {
+                        addTopik();
+                    } else if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                        saveBiblio();
+                    }
+                }
+            });
+
+            db.collection('ekslempar').onSnapshot(snap => {
+                ekslemparDataMap.clear();
+                snap.forEach(doc => {
+                    const d = { id: doc.id, ...doc.data() };
+                    if (!ekslemparDataMap.has(d.kode)) ekslemparDataMap.set(d.kode, []);
+                    ekslemparDataMap.get(d.kode).push(d);
+                });
+                isInitialDataLoaded.ekslempar = true;
+                updateSplashProgress();
+                if (document.getElementById('editDocId').value !== 'NEW') refreshEkslemparTagsInModal(document.getElementById('editDocId').value);
+            });
+            db.collection('biblio').onSnapshot(snap => {
+                globalBiblioList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                isInitialDataLoaded.biblio = true;
+                updateSplashProgress();
+                syncFlatDataToRTDB(globalBiblioList);
+                handleSearchChange();
+            });
+        }
+        document.getElementById('filterInput').onkeyup = handleSearchChange;
+        window.onload = initialize;
+    </script>
+</body>
+</html>
