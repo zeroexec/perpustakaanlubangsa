@@ -6,13 +6,47 @@
     <title>Cetak Label Barcode Ekslempar</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
+        :root { 
+            --bg: #f8fafc; 
+            --text-main: #0f172a; 
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --input-bg: #f8fafc;
+        }
+
+        body.dark-theme { 
+            --bg: #020617; 
+            --text-main: #f1f5f9; 
+            --card-bg: #0f172a;
+            --border-color: #1e293b;
+            --input-bg: #1e293b;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .custom-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+        }
+
+        .custom-input {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
         @media print {
             .no-print { display: none !important; }
-            body { background: white; margin: 0; padding: 0; }
+            body { background: white !important; color: black !important; }
             #printArea { 
                 display: grid !important; 
                 grid-template-columns: repeat(2, 1fr);
@@ -22,6 +56,8 @@
             .label-barcode { 
                 page-break-inside: avoid; 
                 border: 0.5pt solid #000 !important;
+                background: white !important;
+                color: black !important;
             }
         }
 
@@ -81,50 +117,46 @@
             font-weight: bold;
             margin-top: 2px;
             letter-spacing: 1px;
+            color: black;
         }
 
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        body.dark-theme .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; }
     </style>
 </head>
-<body class="bg-slate-50 p-6">
+<body class="p-6">
 
-    <div class="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-xl no-print">
-        <div class="flex justify-between items-center mb-8 border-b pb-5">
+    <div class="max-w-6xl mx-auto custom-card p-6 rounded-2xl shadow-xl no-print">
+        <div class="flex justify-between items-center mb-8 border-b pb-5" style="border-color: var(--border-color)">
             <div>
-                <h1 class="text-2xl font-black text-slate-800 tracking-tight">BARCODE EKSLEMPAR</h1>
-                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Header Abu-abu | Tinggi 3.5cm</p>
+                <h1 class="text-2xl font-black tracking-tight">BARCODE EKSLEMPAR</h1>
+                <p class="text-xs opacity-60 font-bold uppercase tracking-widest mt-1">Perpustakaan Lubangsa | Tinggi 3.5cm</p>
             </div>
-            <div class="flex gap-3">
-                <a href="daftarbibliografi.html" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 px-5 rounded-xl text-sm transition border">Kembali</a>
-                <button id="printBtn" disabled class="bg-slate-800 hover:bg-teal-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-lg disabled:bg-slate-300 transition text-sm">
+            <div>
+                <button id="printBtn" disabled class="bg-slate-800 text-white dark:bg-blue-600 font-bold py-2.5 px-8 rounded-xl shadow-lg disabled:opacity-30 transition text-sm">
                     Cetak (<span id="selectedCountDisplay">0</span>) Barcode
                 </button>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="md:col-span-3">
-                <input type="text" id="searchInput" placeholder="Cari Judul atau Kode Item..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-slate-800 transition text-sm font-medium">
-            </div>
-            <div>
-                <input type="text" id="customHeaderName" value="Perpustakaan Lubangsa" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-slate-800 transition text-sm font-medium">
-            </div>
+        <div class="mb-6">
+            <input type="text" id="searchInput" placeholder="Cari Judul atau Kode Item..." class="w-full p-3 custom-input rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition text-sm font-medium">
         </div>
 
         <div class="flex justify-between items-center mb-4 px-1">
-            <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Daftar Item (<span id="totalItems">0</span>)</span>
-            <button onclick="toggleSelectAll()" id="selectAllBtn" class="text-xs font-black text-slate-800 uppercase hover:text-teal-600 transition">Pilih Halaman Ini</button>
+            <span class="text-xs font-black opacity-50 uppercase tracking-widest">Daftar Item (<span id="totalItems">0</span>)</span>
+            <button onclick="toggleSelectAll()" id="selectAllBtn" class="text-xs font-black uppercase hover:text-blue-500 transition">Pilih Halaman Ini</button>
         </div>
 
         <div id="ekslemparList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[50vh] overflow-y-auto custom-scrollbar p-1">
-            <div class="col-span-full text-center py-20 text-slate-400 font-bold uppercase tracking-widest">Memproses Data...</div>
+            <div class="col-span-full text-center py-20 opacity-40 font-bold uppercase tracking-widest">Memproses Data...</div>
         </div>
 
-        <div class="mt-8 flex justify-between items-center bg-slate-50 p-4 rounded-xl border">
-            <button id="prevPage" class="bg-white border px-5 py-2 rounded-lg font-bold text-slate-600 disabled:opacity-30">Sebelumnya</button>
-            <span id="pageInfo" class="text-sm font-black text-slate-800 uppercase">Halaman 1 / 1</span>
-            <button id="nextPage" class="bg-white border px-5 py-2 rounded-lg font-bold text-slate-600 disabled:opacity-30">Berikutnya</button>
+        <div class="mt-8 flex justify-between items-center custom-input p-4 rounded-xl">
+            <button id="prevPage" class="custom-card px-5 py-2 rounded-lg font-bold disabled:opacity-30">Sebelumnya</button>
+            <span id="pageInfo" class="text-sm font-black uppercase">Halaman 1 / 1</span>
+            <button id="nextPage" class="custom-card px-5 py-2 rounded-lg font-bold disabled:opacity-30">Berikutnya</button>
         </div>
     </div>
 
@@ -142,6 +174,15 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const rtdb = firebase.database();
+
+        rtdb.ref('settings/dark_mode').on('value', snap => {
+            if (snap.val() === true) {
+                document.body.classList.add('dark-theme');
+            } else {
+                document.body.classList.remove('dark-theme');
+            }
+        });
 
         let allEkslempar = []; 
         let filteredEkslempar = [];
@@ -195,17 +236,17 @@
             const totalPages = Math.ceil(filteredEkslempar.length / itemsPerPage) || 1;
             
             if (currentItems.length === 0) {
-                listContainer.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400 font-bold uppercase tracking-widest">Data tidak ditemukan</div>';
+                listContainer.innerHTML = '<div class="col-span-full text-center py-10 opacity-40 font-bold uppercase tracking-widest">Data tidak ditemukan</div>';
                 return;
             }
 
             listContainer.innerHTML = currentItems.map(eks => {
                 const isSelected = selectedEkslemparIds.has(eks.id);
                 return `
-                    <div onclick="toggleSelection('${eks.id}')" class="flex items-center p-4 border rounded-2xl cursor-pointer transition-all ${isSelected ? 'bg-slate-800 border-slate-800 text-white shadow-lg' : 'bg-white hover:border-slate-400'}">
+                    <div onclick="toggleSelection('${eks.id}')" class="flex items-center p-4 border rounded-2xl cursor-pointer transition-all ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'custom-card hover:border-blue-400'}">
                         <div class="flex-grow">
                             <p class="text-sm font-bold truncate w-full">${eks.judul || 'TANPA JUDUL'}</p>
-                            <p class="text-[11px] font-bold mt-1 ${isSelected ? 'text-slate-300' : 'text-slate-500'}">${eks.kode || '-'}</p>
+                            <p class="text-[11px] font-bold mt-1 ${isSelected ? 'opacity-80' : 'opacity-50'}">${eks.kode || '-'}</p>
                         </div>
                     </div>
                 `;
@@ -233,8 +274,7 @@
         printBtn.onclick = () => {
             const printArea = document.getElementById('printArea');
             printArea.innerHTML = ''; 
-            const headerText = document.getElementById('customHeaderName').value || 'Perpustakaan Lubangsa';
-            
+            const headerText = 'Perpustakaan Lubangsa';
             const selectedData = allEkslempar.filter(e => selectedEkslemparIds.has(e.id));
             
             selectedData.forEach(eks => {
@@ -254,7 +294,9 @@
                     displayValue: false, 
                     width: 1.6, 
                     height: 45, 
-                    margin: 0
+                    margin: 0,
+                    background: "#ffffff",
+                    lineColor: "#000000"
                 });
             });
             setTimeout(() => { window.print(); }, 500);
