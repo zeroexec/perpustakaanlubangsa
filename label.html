@@ -6,12 +6,46 @@
     <title>Cetak Label Punggung Buku</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
+        :root { 
+            --bg: #f8fafc; 
+            --text-main: #0f172a; 
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --input-bg: #f8fafc;
+        }
+
+        body.dark-theme { 
+            --bg: #020617; 
+            --text-main: #f1f5f9; 
+            --card-bg: #0f172a;
+            --border-color: #1e293b;
+            --input-bg: #1e293b;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .custom-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+        }
+
+        .custom-input {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
         @media print {
             .no-print { display: none !important; }
-            body { background: white; margin: 0; padding: 0; }
+            body { background: white !important; color: black !important; }
             #printArea { 
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr);
@@ -21,6 +55,8 @@
             .label-spine { 
                 page-break-inside: avoid; 
                 border: 0.5pt solid #000 !important;
+                background: white !important;
+                color: black !important;
             }
         }
 
@@ -100,32 +136,32 @@
 
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        body.dark-theme .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; }
     </style>
 </head>
-<body class="bg-slate-50 p-6">
+<body class="p-6">
 
-    <div class="max-w-6xl mx-auto bg-white p-6 rounded-2xl shadow-xl no-print">
-        <div class="flex justify-between items-center mb-8 border-b pb-5">
+    <div class="max-w-6xl mx-auto custom-card p-6 rounded-2xl shadow-xl no-print">
+        <div class="flex justify-between items-center mb-8 border-b pb-5" style="border-color: var(--border-color)">
             <div>
-                <h1 class="text-2xl font-black text-slate-800 tracking-tight">LABEL PUNGGUNG</h1>
-                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Ukuran Kecil | Tinggi 3.5cm</p>
+                <h1 class="text-2xl font-black tracking-tight">LABEL PUNGGUNG</h1>
+                <p class="text-xs opacity-60 font-bold uppercase tracking-widest mt-1">Perpustakaan Lubangsa | Tinggi 3.5cm</p>
             </div>
-            <div class="flex gap-3">
-                <a href="daftarbibliografi.html" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 px-5 rounded-xl text-sm transition border">Kembali</a>
-                <button id="printBtn" onclick="window.print()" disabled class="bg-slate-800 hover:bg-teal-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-lg disabled:bg-slate-300 transition text-sm">
+            <div>
+                <button id="printBtn" onclick="window.print()" disabled class="bg-slate-800 text-white dark:bg-blue-600 font-bold py-2.5 px-8 rounded-xl shadow-lg disabled:opacity-30 transition text-sm">
                     Cetak (<span id="selectedCount">0</span>) Label
                 </button>
             </div>
         </div>
 
         <div id="biblioList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar p-1">
-            <div class="col-span-full text-center py-20 text-slate-400 font-bold uppercase tracking-widest">Memproses Data...</div>
+            <div class="col-span-full text-center py-20 opacity-40 font-bold uppercase tracking-widest">Memproses Data...</div>
         </div>
 
-        <div class="mt-8 flex justify-between items-center bg-slate-50 p-4 rounded-xl border">
-            <button id="prevPage" class="bg-white border px-5 py-2 rounded-lg font-bold text-slate-600 disabled:opacity-30">Sebelumnya</button>
-            <span id="pageInfo" class="text-sm font-black text-slate-800 uppercase">Halaman 1 / 1</span>
-            <button id="nextPage" class="bg-white border px-5 py-2 rounded-lg font-bold text-slate-600 disabled:opacity-30">Berikutnya</button>
+        <div class="mt-8 flex justify-between items-center custom-input p-4 rounded-xl">
+            <button id="prevPage" class="custom-card px-5 py-2 rounded-lg font-bold disabled:opacity-30">Sebelumnya</button>
+            <span id="pageInfo" class="text-sm font-black uppercase">Halaman 1 / 1</span>
+            <button id="nextPage" class="custom-card px-5 py-2 rounded-lg font-bold disabled:opacity-30">Berikutnya</button>
         </div>
     </div>
 
@@ -143,6 +179,15 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const rtdb = firebase.database();
+
+        rtdb.ref('settings/dark_mode').on('value', snap => {
+            if (snap.val() === true) {
+                document.body.classList.add('dark-theme');
+            } else {
+                document.body.classList.remove('dark-theme');
+            }
+        });
 
         let globalBiblio = [];
         let selectedIds = new Set();
@@ -168,10 +213,10 @@
             const paginated = globalBiblio.slice(start, start + itemsPerPage);
             
             container.innerHTML = paginated.map(b => `
-                <div onclick="toggleSelection('${b.id}')" class="flex items-center p-4 border rounded-2xl cursor-pointer transition-all ${selectedIds.has(b.id) ? 'bg-slate-800 border-slate-800 text-white shadow-lg' : 'bg-white hover:border-slate-400'}">
+                <div onclick="toggleSelection('${b.id}')" class="flex items-center p-4 border rounded-2xl cursor-pointer transition-all ${selectedIds.has(b.id) ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'custom-card hover:border-blue-400'}">
                     <div class="flex-grow">
                         <p class="text-sm font-bold truncate w-64">${b.judul || 'TANPA JUDUL'}</p>
-                        <p class="text-[11px] font-bold mt-1 ${selectedIds.has(b.id) ? 'text-slate-300' : 'text-slate-500'}">${b.nomor_panggil || '-'}</p>
+                        <p class="text-[11px] font-bold mt-1 ${selectedIds.has(b.id) ? 'opacity-80' : 'opacity-50'}">${b.nomor_panggil || '-'}</p>
                     </div>
                 </div>
             `).join('');
