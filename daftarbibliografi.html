@@ -273,10 +273,7 @@
                         <div><label class="text-sm font-semibold">Penerbit</label><input type="text" id="editPenerbit" class="w-full p-2.5 border rounded-xl outline-none"></div>
                         <div><label class="text-sm font-semibold">Tahun</label><input type="text" id="editTahunTerbit" class="w-full p-2.5 border rounded-xl outline-none"></div>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div><label class="text-sm font-semibold">Nomor Panggil</label><input type="text" id="editNomorPanggil" class="w-full p-2.5 border rounded-xl outline-none"></div>
-                        <div><label class="text-sm font-semibold">Deskripsi Fisik</label><input type="text" id="editDeskripsiFisik" class="w-full p-2.5 border rounded-xl outline-none"></div>
-                    </div>
+                    <div><label class="text-sm font-semibold">Deskripsi Fisik</label><input type="text" id="editDeskripsiFisik" class="w-full p-2.5 border rounded-xl outline-none"></div>
                     <div><label class="text-sm font-semibold">URL Sampul</label><input type="url" id="editSampulUrl" class="w-full p-2.5 border rounded-xl outline-none"></div>
                     <div>
                         <label class="text-sm font-semibold">Abstrak / Catatan</label>
@@ -316,6 +313,10 @@
                         <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-sub)">Kode Ekslempar *</label>
                         <input type="text" id="child_edit_kode_ref" required class="w-full p-2.5 border rounded-xl outline-none">
                         <p id="duplicateError" class="hidden text-red-600 text-[10px] font-bold mt-1.5">KODE SUDAH DIGUNAKAN</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-sub)">Nomor Panggil</label>
+                        <input type="text" id="child_edit_nomor_panggil" class="w-full p-2.5 border rounded-xl outline-none">
                     </div>
                     <div>
                         <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-sub)">Lokasi Rak</label>
@@ -434,7 +435,6 @@
                 document.getElementById('editISBNISSN').value = b.isbn_issn || '';
                 document.getElementById('editPenerbit').value = b.penerbit || '';
                 document.getElementById('editTahunTerbit').value = b.tahun_terbit || '';
-                document.getElementById('editNomorPanggil').value = b.nomor_panggil || '';
                 document.getElementById('editDeskripsiFisik').value = b.deskripsi_fisik || '';
                 document.getElementById('editAbstrak').value = b.abstrak || '';
                 document.getElementById('editSampulUrl').value = b.sampul_url || '';
@@ -460,6 +460,7 @@
                 <div class="flex items-center border rounded-lg px-3 py-1.5 cursor-pointer" style="background-color: var(--input-bg); border-color: var(--border-color);" onclick="openEditChildModal('${c.id}')">
                     <div class="mr-3">
                         <p class="text-[10px] font-bold text-blue-500 uppercase">${c.kode}</p>
+                        <p class="text-[9px] font-semibold" style="color: var(--text-main)">${c.nomor_panggil || '-'}</p>
                         <p class="text-[9px]" style="color: var(--text-sub)">${c.lokasi_rak || '-'}</p>
                     </div>
                     <button type="button" onclick="event.stopPropagation(); deleteEkslempar('${biblioId}','${c.id}','${c.kode}')" class="text-slate-400 hover:text-red-500 text-lg">&times;</button>
@@ -500,6 +501,7 @@
                 document.getElementById('editModal').classList.add('hidden-temp');
                 document.getElementById('editChildId').value = child.id;
                 document.getElementById('child_edit_kode_ref').value = child.kode || '';
+                document.getElementById('child_edit_nomor_panggil').value = child.nomor_panggil || '';
                 document.getElementById('child_edit_lokasi').value = child.lokasi_rak || '';
                 document.getElementById('child_original_kode_ref').value = child.kode || '';
                 document.getElementById('duplicateError').classList.add('hidden');
@@ -637,7 +639,6 @@
                 isbn_issn: document.getElementById('editISBNISSN').value.trim(),
                 penerbit: document.getElementById('editPenerbit').value.trim(),
                 tahun_terbit: document.getElementById('editTahunTerbit').value.trim(),
-                nomor_panggil: document.getElementById('editNomorPanggil').value.trim(),
                 deskripsi_fisik: document.getElementById('editDeskripsiFisik').value.trim(),
                 abstrak: document.getElementById('editAbstrak').value.trim(),
                 sampul_url: document.getElementById('editSampulUrl').value.trim(),
@@ -676,15 +677,29 @@
             const biblioId = document.getElementById('editDocId').value;
             const childId = document.getElementById('editChildId').value;
             const kodeBaru = document.getElementById('child_edit_kode_ref').value.trim();
+            const nomorPanggil = document.getElementById('child_edit_nomor_panggil').value.trim();
             const lokasi = document.getElementById('child_edit_lokasi').value.trim();
             const judulBuku = document.getElementById('editJudul').value.trim();
             try {
                 if (childId === 'NEW_CHILD') {
-                    await db.collection('ekslempar').add({ kode: kodeBaru, lokasi_rak: lokasi, judul: judulBuku, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
+                    await db.collection('ekslempar').add({ 
+                        kode: kodeBaru, 
+                        nomor_panggil: nomorPanggil,
+                        lokasi_rak: lokasi, 
+                        judul: judulBuku, 
+                        createdAt: FieldValue.serverTimestamp(), 
+                        updatedAt: FieldValue.serverTimestamp() 
+                    });
                     await db.collection('biblio').doc(biblioId).update({ kode: FieldValue.arrayUnion(kodeBaru), updatedAt: FieldValue.serverTimestamp() });
                 } else {
                     const original = document.getElementById('child_original_kode_ref').value;
-                    await db.collection('ekslempar').doc(childId).update({ kode: kodeBaru, lokasi_rak: lokasi, judul: judulBuku, updatedAt: FieldValue.serverTimestamp() });
+                    await db.collection('ekslempar').doc(childId).update({ 
+                        kode: kodeBaru, 
+                        nomor_panggil: nomorPanggil,
+                        lokasi_rak: lokasi, 
+                        judul: judulBuku, 
+                        updatedAt: FieldValue.serverTimestamp() 
+                    });
                     if (original !== kodeBaru) {
                         await db.collection('biblio').doc(biblioId).update({ kode: FieldValue.arrayRemove(original) });
                         await db.collection('biblio').doc(biblioId).update({ kode: FieldValue.arrayUnion(kodeBaru), updatedAt: FieldValue.serverTimestamp() });
