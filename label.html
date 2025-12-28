@@ -143,12 +143,32 @@
 
         .biblio-item {
             transition: all 0.2s;
-            border-left: 4px solid transparent;
         }
 
-        .biblio-item.selected {
-            background-color: var(--primary-light);
-            border-left-color: var(--primary);
+        .exemplar-badge {
+            font-size: 10px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--input-bg);
+            font-weight: 600;
+        }
+
+        .exemplar-badge.selected {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 2px 4px rgba(26, 115, 232, 0.3);
+        }
+
+        .btn-select-all {
+            font-size: 10px;
+            color: var(--primary);
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
         }
 
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
@@ -161,7 +181,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b pb-6" style="border-color: var(--border-color)">
             <div>
                 <h1 class="text-3xl font-bold tracking-tight" style="color: var(--primary)">Label Punggung</h1>
-                <p style="color: var(--text-sub)" class="text-sm font-medium uppercase tracking-wider mt-1">1 Baris 3 Label | Bentuk Persegi Panjang</p>
+                <p style="color: var(--text-sub)" class="text-sm font-medium uppercase tracking-wider mt-1">Sistem Seleksi Ekslempar | 1 Baris 3 Label</p>
             </div>
             <div>
                 <button id="printBtn" onclick="window.print()" disabled class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-lg disabled:opacity-30 transition flex items-center gap-2">
@@ -171,7 +191,7 @@
             </div>
         </div>
 
-        <div id="biblioList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar p-1">
+        <div id="biblioList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[65vh] overflow-y-auto custom-scrollbar p-1">
             <div class="col-span-full text-center py-20 opacity-40 font-bold uppercase tracking-widest">Memproses Data...</div>
         </div>
 
@@ -209,12 +229,19 @@
         }
 
         let globalBiblio = [];
-        let selectedIds = new Set();
+        let globalEkslempar = [];
+        let selectedItems = []; 
         let currentPage = 1;
         const itemsPerPage = 12;
 
         function loadData() {
             setupDarkModeSync();
+            
+            db.collection('ekslempar').onSnapshot(snap => {
+                globalEkslempar = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (globalBiblio.length > 0) renderList();
+            });
+
             db.collection('biblio').orderBy('updatedAt', 'desc').onSnapshot(snap => {
                 globalBiblio = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderList();
@@ -228,7 +255,6 @@
 
         function renderList() {
             const container = document.getElementById('biblioList');
-            const printArea = document.getElementById('printArea');
             const start = (currentPage - 1) * itemsPerPage;
             const paginated = globalBiblio.slice(start, start + itemsPerPage);
             
@@ -237,50 +263,110 @@
                 return;
             }
 
-            container.innerHTML = paginated.map(b => `
-                <div onclick="toggleSelection('${b.id}')" class="biblio-item custom-card flex items-center p-4 rounded-2xl cursor-pointer transition-all ${selectedIds.has(b.id) ? 'selected' : 'hover:border-blue-400'}">
-                    <div class="flex-grow min-w-0">
-                        <p class="text-sm font-bold truncate">${b.judul || 'TANPA JUDUL'}</p>
-                        <p class="text-[11px] font-bold mt-1 opacity-60">${b.nomor_panggil || '-'}</p>
+            container.innerHTML = paginated.map(b => {
+                const codes = Array.isArray(b.kode) ? b.kode : (b.kode ? [b.kode] : []);
+                const allSelected = codes.length > 0 && codes.every(code => selectedItems.some(item => item.biblioId === b.id && item.kode === code));
+
+                return `
+                <div class="biblio-item custom-card p-5 rounded-2xl flex flex-col gap-4 shadow-sm">
+                    <div class="flex justify-between items-start gap-2">
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold truncate">${b.judul || 'TANPA JUDUL'}</p>
+                            <p class="text-[10px] uppercase font-bold text-blue-500 mt-1">${codes.length} Ekslempar Terdeteksi</p>
+                        </div>
+                        <button onclick="toggleAllExemplars('${b.id}')" class="btn-select-all whitespace-nowrap">
+                            ${allSelected ? 'Batal' : 'Semua'}
+                        </button>
                     </div>
-                    <div class="ml-3 w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedIds.has(b.id) ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}">
-                        ${selectedIds.has(b.id) ? '<svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
+                    <div class="flex flex-wrap gap-2 pt-3 border-t border-dashed" style="border-color: var(--border-color)">
+                        ${codes.map(code => {
+                            const isSelected = selectedItems.some(item => item.biblioId === b.id && item.kode === code);
+                            const eksData = globalEkslempar.find(e => e.kode === code);
+                            const np = eksData ? eksData.nomor_panggil : '-';
+                            return `
+                                <div onclick="toggleExemplar('${b.id}', '${code}')" 
+                                      class="exemplar-badge flex flex-col items-center ${isSelected ? 'selected' : ''}">
+                                    <span>${code}</span>
+                                    <span class="text-[8px] opacity-70 font-normal">${np}</span>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 </div>
-            `).join('');
-
-            const selectedData = globalBiblio.filter(b => selectedIds.has(b.id));
-            
-            printArea.innerHTML = selectedData.map(b => {
-                const codes = Array.isArray(b.kode) ? b.kode : (b.kode ? [b.kode] : ['c.1']);
-                return codes.map(code => `
-                    <div class="label-spine">
-                        <div class="label-header">Perpustakaan Lubangsa</div>
-                        <div class="label-content">
-                            <div class="title-row">
-                                <span class="exemplar-code">${code}</span>
-                                <span class="label-title-mini">${b.judul || ''}</span>
-                            </div>
-                            <div class="call-number-container">
-                                ${formatCallNumber(b.nomor_panggil)}
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
+                `;
             }).join('');
 
-            document.getElementById('selectedCount').innerText = selectedIds.size;
-            document.getElementById('printBtn').disabled = selectedIds.size === 0;
+            renderPrintArea();
+
+            document.getElementById('selectedCount').innerText = selectedItems.length;
+            document.getElementById('printBtn').disabled = selectedItems.length === 0;
             const totalPages = Math.ceil(globalBiblio.length / itemsPerPage) || 1;
             document.getElementById('pageInfo').innerText = `Halaman ${currentPage} / ${totalPages}`;
             document.getElementById('prevPage').disabled = currentPage === 1;
             document.getElementById('nextPage').disabled = currentPage >= totalPages;
         }
 
-        function toggleSelection(id) {
-            if (selectedIds.has(id)) selectedIds.delete(id);
-            else selectedIds.add(id);
+        function toggleExemplar(id, code) {
+            const index = selectedItems.findIndex(item => item.biblioId === id && item.kode === code);
+            
+            if (index > -1) {
+                selectedItems.splice(index, 1);
+            } else {
+                const book = globalBiblio.find(b => b.id === id);
+                const eksData = globalEkslempar.find(e => e.kode === code);
+                if (book) {
+                    selectedItems.push({
+                        biblioId: book.id,
+                        judul: book.judul,
+                        nomor_panggil: eksData ? eksData.nomor_panggil : '',
+                        kode: code
+                    });
+                }
+            }
             renderList();
+        }
+
+        function toggleAllExemplars(id) {
+            const book = globalBiblio.find(b => b.id === id);
+            if (!book) return;
+
+            const codes = Array.isArray(book.kode) ? book.kode : (book.kode ? [book.kode] : []);
+            const allSelected = codes.length > 0 && codes.every(code => selectedItems.some(item => item.biblioId === id && item.kode === code));
+
+            if (allSelected) {
+                selectedItems = selectedItems.filter(item => item.biblioId !== id);
+            } else {
+                codes.forEach(code => {
+                    if (!selectedItems.some(item => item.biblioId === id && item.kode === code)) {
+                        const eksData = globalEkslempar.find(e => e.kode === code);
+                        selectedItems.push({
+                            biblioId: book.id,
+                            judul: book.judul,
+                            nomor_panggil: eksData ? eksData.nomor_panggil : '',
+                            kode: code
+                        });
+                    }
+                });
+            }
+            renderList();
+        }
+
+        function renderPrintArea() {
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = selectedItems.map(item => `
+                <div class="label-spine">
+                    <div class="label-header">Perpustakaan Lubangsa</div>
+                    <div class="label-content">
+                        <div class="title-row">
+                            <span class="exemplar-code">${item.kode}</span>
+                            <span class="label-title-mini">${item.judul || ''}</span>
+                        </div>
+                        <div class="call-number-container">
+                            ${formatCallNumber(item.nomor_panggil)}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
 
         document.getElementById('prevPage').onclick = () => { if(currentPage > 1) { currentPage--; renderList(); } };
