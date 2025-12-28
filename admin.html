@@ -3,160 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LUBANGSA Digital Library</title>
+    <title>LUBANGSA Digital Library - Admin</title>
     <link rel="icon" type="image/png" href="logo.png">
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #2563eb;
-            --gradient: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-            --bg-body: #f1f5f9;
+            --primary: #1a73e8;
+            --bg-body: #f8f9fa;
             --bg-sidebar: #ffffff;
-            --bg-sub: #f8fafc;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --bg-active: #e8f0fe;
+            --text-main: #3c4043;
+            --text-muted: #5f6368;
+            --border: #dadce0;
         }
-
         body.dark-theme {
-            --bg-body: #0f172a;
-            --bg-sidebar: #1e293b;
-            --bg-sub: #0f172a50;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --border: #334155;
+            --bg-body: #202124;
+            --bg-sidebar: #28292c;
+            --bg-active: #3c4043;
+            --text-main: #e8eaed;
+            --text-muted: #bdc1c6;
+            --border: #3c4043;
         }
-
-        body { font-family: 'Inter', sans-serif; margin: 0; background: var(--bg-body); color: var(--text-main); transition: background 0.3s; height: 100vh; overflow: hidden; display: flex; }
-
-        #login-screen { position: fixed; inset: 0; background: var(--bg-body); z-index: 10000; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: var(--bg-sidebar); padding: 40px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
-        .login-card input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-body); color: var(--text-main); box-sizing: border-box; outline: none; transition: 0.2s; }
-        .login-card button { width: 100%; padding: 14px; margin-top: 20px; border: none; border-radius: 10px; background: var(--gradient); color: white; font-weight: 700; cursor: pointer; }
-
-        #main-app { display: none; width: 100%; height: 100vh; opacity: 0; transition: opacity 0.5s ease; }
-        #main-app.visible { display: flex; opacity: 1; }
-
-        .sidebar { width: 280px; background: var(--bg-sidebar); display: flex; flex-direction: column; border-right: 1px solid var(--border); }
-        .brand { padding: 30px 25px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border); }
-        .brand-logo { width: 42px; height: 42px; background: var(--gradient); color: white; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 1.4rem; }
-        
-        .nav-container { flex-grow: 1; overflow-y: auto; padding: 15px 0; }
-        .nav-item { margin: 4px 12px; border-radius: 10px; overflow: hidden; transition: var(--transition); }
-        .nav-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
-        .nav-item.active-item { background: var(--bg-sub); border-right: 4px solid var(--primary); }
-        .nav-item.active-item .nav-header { color: var(--primary); }
-        
-        .sub-wrapper { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-        .nav-item.expanded .sub-wrapper { grid-template-rows: 1fr; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg-body); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; }
+        .sidebar { width: 280px; background: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 40; }
+        .brand-section { padding: 30px 20px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 12px; }
+        .brand-icon { font-size: 1.5rem; color: var(--primary); }
+        .brand-text { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; color: var(--text-main); line-height: 1.2; text-transform: uppercase; }
+        .brand-text span { color: var(--primary); }
+        .nav-item .nav-header { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: 600; font-size: 0.88rem; transition: 0.2s; color: var(--text-main); }
+        .nav-item.active .nav-header { color: var(--primary); }
+        .sub-wrapper { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
+        .nav-item.active .sub-wrapper { grid-template-rows: 1fr; }
         .sub-content { overflow: hidden; }
-        .sub-content a { display: flex; align-items: center; gap: 12px; padding: 10px 20px 10px 45px; text-decoration: none; color: var(--text-muted); font-size: 0.85rem; transition: 0.2s; }
-        .sub-content a.active { color: var(--primary); font-weight: 700; background: var(--bg-sidebar); border-right: 4px solid var(--primary); }
-
-        .sidebar-footer { padding: 15px; border-top: 1px solid var(--border); background: var(--bg-sub); }
-        .footer-btn { display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); transition: 0.2s; }
-        .footer-btn:hover { background: var(--border); }
-
-        .main { flex-grow: 1; padding: 20px; }
-        .frame-box { background: var(--bg-sidebar); height: 100%; border-radius: 20px; overflow: hidden; border: 1px solid var(--border); position: relative; }
-        iframe { width: 100%; height: 100%; border: none; display: none; }
-        iframe.active { display: block; animation: smoothIn 0.3s ease-out forwards; }
-
-        @keyframes smoothIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .modal-overlay { 
-            position: fixed; 
-            inset: 0; 
-            background: rgba(15, 23, 42, 0); 
-            backdrop-filter: blur(0px); 
-            display: none; 
-            z-index: 9999; 
-            align-items: flex-end; 
-            transition: background 0.4s ease, backdrop-filter 0.4s ease;
-        }
-        .modal-overlay.show { 
+        .sub-content a { 
             display: flex; 
-            background: rgba(15, 23, 42, 0.5); 
-            backdrop-filter: blur(8px); 
+            align-items: center; 
+            gap: 12px; 
+            padding: 10px 20px 10px 45px; 
+            text-decoration: none; 
+            color: var(--text-muted); 
+            font-size: 0.85rem; 
+            transition: all 0.2s ease;
+            border-left: 4px solid transparent;
         }
-        .modal-body { 
-            width: 100%; 
-            background: var(--bg-sidebar); 
-            border-radius: 30px 30px 0 0; 
-            padding: 30px; 
-            transform: translateY(100%); 
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-            max-height: 90vh; 
-            overflow-y: auto; 
-            box-sizing: border-box; 
-            scrollbar-width: none; 
+        .sub-content a:hover { background: rgba(0,0,0,0.03); color: var(--text-main); }
+        body.dark-theme .sub-content a:hover { background: rgba(255,255,255,0.03); }
+        .sub-content a.active { 
+            color: var(--primary); 
+            background: var(--bg-active); 
+            font-weight: 700; 
+            border-left: 4px solid var(--primary);
         }
-        .modal-body::-webkit-scrollbar { display: none; }
-        .modal-overlay.active-anim .modal-body { transform: translateY(0); }
-
-        .btn-default { color: #94a3b8; cursor: pointer; transition: 0.2s; }
-        .btn-default.is-active { color: #f59e0b; }
-        
-        .editor-input { border: 1px solid var(--border); padding: 8px 12px; border-radius: 10px; font-size: 0.85rem; background: var(--bg-sidebar); color: var(--text-main); outline: none; }
-        .editor-input:focus { border-color: var(--primary); }
+        .main { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; position: relative; }
+        .frame-box { background: var(--bg-sidebar); flex-grow: 1; margin: 12px; border-radius: 8px; border: 1px solid var(--border); overflow: hidden; position: relative; }
+        iframe, #nav-editor-ui { width: 100%; height: 100%; border: none; display: none; }
+        iframe.active, #nav-editor-ui.active { display: block; }
+        #nav-editor-ui { padding: 40px; overflow-y: auto; background: var(--bg-sidebar); }
+        .editor-input { border: 1px solid var(--border); padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; background: transparent; color: var(--text-main); outline: none; }
+        .save-btn-container { position: absolute; top: 25px; right: 40px; z-index: 50; display: none; }
+        .btn-save { background: var(--primary); color: white; padding: 8px 24px; border-radius: 4px; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
+        .chevron { transition: transform 0.3s ease; font-size: 0.7rem; }
     </style>
 </head>
 <body>
-
-<div id="login-screen">
-    <div class="login-card">
-        <div class="brand-logo" style="margin: 0 auto 20px auto;"><i class="fas fa-book-reader"></i></div>
-        <h2 style="margin-bottom: 10px;">Masuk Sistem</h2>
-        <div id="login-form-area" onkeydown="if(event.key === 'Enter') handleLogin()">
-            <input type="text" id="login-user" placeholder="Username" autofocus>
-            <input type="password" id="login-pass" placeholder="Password">
-            <button onclick="handleLogin()">Masuk Sekarang</button>
+<div id="login-screen" class="fixed inset-0 z-[10000] bg-[var(--bg-body)] flex items-center justify-center">
+    <div class="bg-[var(--bg-sidebar)] p-12 rounded-lg shadow-xl border border-[var(--border)] w-full max-w-sm text-center">
+        <div class="flex flex-col items-center mb-8">
+            <i class="fas fa-book-reader text-4xl mb-4" style="color:var(--primary)"></i>
+            <div class="brand-text text-xl">
+                PERPUSTAKAAN <span>LUBANGSA</span>
+            </div>
         </div>
-        <p id="login-err" style="color: #ef4444; font-size: 0.8rem; margin-top: 15px; min-height: 1.2rem;"></p>
+        <div onkeydown="if(event.key === 'Enter') handleLogin()" class="space-y-4">
+            <input type="text" id="login-user" placeholder="Username" class="w-full p-3 rounded border dark:bg-transparent dark:border-slate-700 outline-none focus:border-blue-500">
+            <input type="password" id="login-pass" placeholder="Password" class="w-full p-3 rounded border dark:bg-transparent dark:border-slate-700 outline-none focus:border-blue-500">
+            <button onclick="handleLogin()" class="w-full py-3 bg-[#1a73e8] text-white font-bold rounded">MASUK</button>
+        </div>
+        <p id="login-err" class="text-red-500 text-xs mt-4"></p>
     </div>
 </div>
-
-<div id="main-app">
-    <div class="sidebar">
-        <div class="brand">
-            <div class="brand-logo"><i class="fas fa-book-reader"></i></div>
+<div id="main-app" class="hidden flex w-full h-screen">
+    <aside class="sidebar">
+        <div class="brand-section" onclick="openNavEditor()">
+            <i class="fas fa-book-reader brand-icon"></i>
             <div class="brand-text">
-                <div style="font-size: 1.2rem; font-weight: 800; text-transform: uppercase;">LUBANG<span style="color:var(--primary); font-weight:400;">SA</span></div>
-                <div style="font-size: 0.6rem; font-weight: 600; color: var(--text-muted); letter-spacing: 1px;">Digital Library</div>
+                PERPUSTAKAAN <span>LUBANGSA</span>
             </div>
         </div>
-        <div id="dynamic-nav" class="nav-container"></div>
-        <div class="sidebar-footer">
-            <div class="footer-btn" onclick="toggleDarkMode()">
-                <i id="themeIcon" class="fas fa-moon"></i>
-                <span id="themeText">Mode Gelap</span>
+        <div id="dynamic-nav" class="nav-container flex-grow overflow-y-auto pt-4"></div>
+        <div class="p-4 border-t border-[var(--border)]">
+            <div class="flex items-center gap-3 p-2 cursor-pointer text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" onclick="toggleDarkMode()">
+                <i id="themeIcon" class="fas fa-moon"></i> <span id="themeText">Mode Gelap</span>
             </div>
-            <div class="footer-btn logout-btn" onclick="handleLogout()">
-                <i class="fas fa-power-off"></i>
-                <span>Keluar Sistem</span>
+            <div class="flex items-center gap-3 p-2 cursor-pointer text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg mt-1" onclick="handleLogout()">
+                <i class="fas fa-power-off"></i> <span>Keluar</span>
             </div>
         </div>
-    </div>
-    <div class="main">
-        <div class="frame-box" id="frame-container"></div>
-    </div>
+    </aside>
+    <main class="main">
+        <div id="save-area" class="save-btn-container">
+            <button onclick="saveNav()" class="btn-save">SIMPAN PERUBAHAN</button>
+        </div>
+        <div class="frame-box" id="frame-container">
+            <div id="nav-editor-ui">
+                <div class="mb-10 pb-6 border-b border-[var(--border)]">
+                    <h2 class="text-2xl font-bold">Setelan Navigasi</h2>
+                    <p class="text-sm text-[var(--text-muted)] mt-1">Kelola kategori menu untuk perpustakaan digital.</p>
+                </div>
+                <div id="editor-list"></div>
+                <button onclick="addGroup()" class="w-full py-5 border-2 border-dashed border-[var(--border)] rounded-lg font-bold text-[var(--text-muted)] hover:bg-slate-50 dark:hover:bg-white/5 mt-6 transition-all">
+                    + TAMBAH KATEGORI UTAMA
+                </button>
+            </div>
+        </div>
+    </main>
 </div>
-
-<div class="modal-overlay" id="modal-nav" onclick="closeModal()">
-    <div class="modal-body" onclick="event.stopPropagation()">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h2 style="margin:0;">Pengaturan Navigasi</h2>
-            <button onclick="closeModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted);">&times;</button>
-        </div>
-        <div id="editor-list"></div>
-        <button onclick="addGroup()" style="width:100%; padding:15px; border:2px dashed var(--border); background:none; color:var(--text-muted); cursor:pointer; border-radius:12px; font-weight:700; margin-top:10px;">+ TAMBAH MENU UTAMA</button>
-    </div>
-</div>
-
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ",
@@ -165,10 +130,8 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
-    let navData = [];
-    let isDarkMode = false;
-    let credentials = {};
+    let navData = [], isDarkMode = false, credentials = {}, isInitialLoad = true;
+    let localNavData = [];
 
     db.ref('/').on('value', snap => {
         const data = snap.val() || {};
@@ -177,39 +140,38 @@
         credentials = data.admin_credentials || { user: 'admin', pass: 'admin123' };
         applyTheme(isDarkMode);
         renderSidebar();
-        
-        if (sessionStorage.getItem('isLoggedIn') === 'true') {
-            autoLoadDefault();
+        if (isInitialLoad && navData.length > 0) {
+            setTimeout(autoOpenFirst, 100);
+            isInitialLoad = false;
         }
     });
 
     function handleLogin() {
-        const user = document.getElementById('login-user').value;
-        const pass = document.getElementById('login-pass').value;
-        if (user === credentials.user && pass === credentials.pass) {
-            sessionStorage.setItem('isLoggedIn', 'true');
-            showApp();
-            autoLoadDefault();
+        const u = document.getElementById('login-user').value, p = document.getElementById('login-pass').value;
+        if (u === credentials.user && p === credentials.pass) {
+            sessionStorage.setItem('isAdmin', 'true');
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'flex';
+            if (navData.length > 0) setTimeout(autoOpenFirst, 100);
         } else {
             document.getElementById('login-err').innerText = "Kredensial salah!";
         }
     }
-
-    function showApp() {
+    if (sessionStorage.getItem('isAdmin') === 'true') {
         document.getElementById('login-screen').style.display = 'none';
-        const app = document.getElementById('main-app');
-        app.style.display = 'flex';
-        setTimeout(() => app.classList.add('visible'), 50);
+        document.getElementById('main-app').style.display = 'flex';
     }
 
-    function handleLogout() {
-        sessionStorage.removeItem('isLoggedIn');
-        window.location.reload();
+    function autoOpenFirst() {
+        if (!navData.length) return;
+        const firstGroup = navData[0];
+        toggleMenu(`nav-${firstGroup.id}`);
+        if (firstGroup.sub && firstGroup.sub.length > 0) {
+            const firstSub = firstGroup.sub[0];
+            const firstSubLink = document.querySelector(`#nav-${firstGroup.id} .sub-content a`);
+            if (firstSubLink) loadFrame(firstSub.id, firstSub.file, firstSub.label, firstSubLink);
+        }
     }
-
-    window.onload = () => {
-        if (sessionStorage.getItem('isLoggedIn') === 'true') showApp();
-    };
 
     function toggleDarkMode() { db.ref('settings/dark_mode').set(!isDarkMode); }
     function applyTheme(dark) {
@@ -217,66 +179,63 @@
         document.getElementById('themeIcon').className = dark ? 'fas fa-sun' : 'fas fa-moon';
         document.getElementById('themeText').innerText = dark ? 'Mode Terang' : 'Mode Gelap';
     }
+    function handleLogout() { sessionStorage.removeItem('isAdmin'); window.location.reload(); }
 
     function renderSidebar() {
         const container = document.getElementById('dynamic-nav');
+        const activeSubId = document.querySelector('.sub-content a.active')?.getAttribute('data-id');
+        const activeGroupId = document.querySelector('.nav-item.active')?.id;
         container.innerHTML = '';
         navData.forEach(g => {
             const item = document.createElement('div');
-            item.className = 'nav-item';
-            item.id = `item-${g.id}`;
-            const hasSub = g.sub && g.sub.length > 0;
-            
+            item.className = 'nav-item' + (activeGroupId === `nav-${g.id}` ? ' active' : '');
+            item.id = `nav-${g.id}`;
             item.innerHTML = `
-                <div class="nav-header" onclick="${hasSub ? `toggleMenu('item-${g.id}')` : `loadFrame('${g.id}', '${g.file}', this, true)`}">
-                    <span><i class="${g.icon || 'fas fa-folder'}"></i> ${g.title}</span>
-                    ${hasSub ? '<i class="fas fa-chevron-down chevron" style="transition:0.3s"></i>' : ''}
+                <div class="nav-header" onclick="toggleMenu('nav-${g.id}')">
+                    <span><i class="${g.icon || 'fas fa-folder'} mr-3 w-5 text-center"></i> ${g.title}</span>
+                    <i class="fas fa-chevron-down chevron" style="transform:${activeGroupId === `nav-${g.id}` ? 'rotate(180deg)' : 'rotate(0deg)'}"></i>
                 </div>
-                ${hasSub ? '<div class="sub-wrapper"><div class="sub-content"></div></div>' : ''}
+                <div class="sub-wrapper"><div class="sub-content"></div></div>
             `;
-
-            if(hasSub) {
-                const subBox = item.querySelector('.sub-content');
-                g.sub.forEach(s => {
-                    const a = document.createElement('a');
-                    a.href = "#";
-                    a.id = `link-${s.id}`;
-                    a.innerHTML = `<i class="${s.icon || 'far fa-circle'}"></i> ${s.label}`;
-                    a.onclick = (e) => { e.preventDefault(); loadFrame(s.id, s.file, a); };
-                    subBox.appendChild(a);
-                });
-            }
+            const subBox = item.querySelector('.sub-content');
+            if(g.sub) g.sub.forEach(s => {
+                const a = document.createElement('a'); a.href = "#";
+                a.setAttribute('data-id', s.id);
+                if(activeSubId === s.id) a.className = 'active';
+                a.innerHTML = `<i class="${s.icon || 'far fa-circle'} text-[10px] w-5 text-center"></i> ${s.label}`;
+                a.onclick = (e) => { e.preventDefault(); loadFrame(s.id, s.file, s.label, a); };
+                subBox.appendChild(a);
+            });
             container.appendChild(item);
         });
-
-        const adminItem = document.createElement('div');
-        adminItem.className = 'nav-item';
-        adminItem.innerHTML = `<div class="nav-header" onclick="openModal()"><span><i class="fas fa-cog"></i> PENGATURAN</span></div>`;
-        container.appendChild(adminItem);
     }
 
     function toggleMenu(id) {
-        const el = document.getElementById(id);
-        const wasExpanded = el.classList.contains('expanded');
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('expanded'));
-        if(!wasExpanded) el.classList.add('expanded');
-        const chevron = el.querySelector('.chevron');
-        if(chevron) chevron.style.transform = !wasExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+        const target = document.getElementById(id);
+        if(!target) return;
+        const isActive = target.classList.contains('active');
+        document.querySelectorAll('.nav-item').forEach(el => {
+            el.classList.remove('active');
+            const c = el.querySelector('.chevron');
+            if(c) c.style.transform = 'rotate(0deg)';
+        });
+        if(!isActive) {
+            target.classList.add('active');
+            const c = target.querySelector('.chevron');
+            if(c) c.style.transform = 'rotate(180deg)';
+        }
     }
 
-    function loadFrame(id, src, el, isParent = false) {
-        document.querySelectorAll('.sub-content a, .nav-item').forEach(x => x.classList.remove('active', 'active-item'));
-        if(isParent) {
-            el.closest('.nav-item').classList.add('active-item');
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('expanded'));
-        } else {
-            el.classList.add('active');
-        }
+    function loadFrame(id, src, label, el) {
+        document.getElementById('nav-editor-ui').classList.remove('active');
+        document.getElementById('save-area').style.display = 'none';
+        document.querySelectorAll('.sub-content a').forEach(a => a.classList.remove('active'));
+        el.classList.add('active');
         const container = document.getElementById('frame-container');
-        let f = document.getElementById('ifr-' + id);
+        let f = document.getElementById(`ifr-${id}`);
         if(!f) {
             f = document.createElement('iframe');
-            f.id = 'ifr-' + id;
+            f.id = `ifr-${id}`;
             container.appendChild(f);
         }
         document.querySelectorAll('iframe').forEach(ifr => ifr.classList.remove('active'));
@@ -284,99 +243,64 @@
         f.classList.add('active');
     }
 
-    function autoLoadDefault() {
-        let found = false;
-        navData.forEach(g => {
-            if(g.isDefault && !found) {
-                const header = document.querySelector(`#item-${g.id} .nav-header`);
-                if(header) loadFrame(g.id, g.file, header, true);
-                found = true;
-            }
-            if(g.sub) g.sub.forEach(s => {
-                if(s.isDefault && !found) {
-                    const parent = document.getElementById(`item-${g.id}`);
-                    if(parent) parent.classList.add('expanded');
-                    const link = document.getElementById(`link-${s.id}`);
-                    if(link) loadFrame(s.id, s.file, link);
-                    found = true;
-                }
-            });
-        });
-    }
-
-    function openModal() {
-        const modal = document.getElementById('modal-nav');
-        modal.style.display = 'flex';
-        modal.offsetHeight;
-        modal.classList.add('show');
-        modal.classList.add('active-anim');
+    function openNavEditor() {
+        document.querySelectorAll('iframe').forEach(ifr => ifr.classList.remove('active'));
+        document.getElementById('nav-editor-ui').classList.add('active');
+        document.getElementById('save-area').style.display = 'block';
+        localNavData = JSON.parse(JSON.stringify(navData));
         renderEditor();
-    }
-
-    function closeModal() {
-        const modal = document.getElementById('modal-nav');
-        modal.classList.remove('active-anim');
-        setTimeout(() => {
-            modal.classList.remove('show');
-            modal.style.display = 'none';
-        }, 400);
     }
 
     function renderEditor() {
         const list = document.getElementById('editor-list');
         list.innerHTML = '';
-        navData.forEach((g, gIdx) => {
+        localNavData.forEach((g, gIdx) => {
             const card = document.createElement('div');
-            card.style = "background:var(--bg-sub); padding:15px; border-radius:15px; margin-bottom:15px; border:1px solid var(--border);";
-            
+            card.className = "mb-6 p-6 border border-[var(--border)] rounded-lg bg-[var(--bg-body)]";
             let subHtml = '';
             if(g.sub) {
                 g.sub.forEach((s, sIdx) => {
                     subHtml += `
-                        <div style="display:flex; align-items:center; gap:8px; margin-top:8px; padding-left:25px;">
-                            <i class="fas fa-star btn-default ${s.isDefault ? 'is-active' : ''}" onclick="setDefault(${gIdx}, ${sIdx})" title="Set Default"></i>
-                            <input type="text" placeholder="Ikon FA" value="${s.icon || ''}" oninput="updateSub(${gIdx}, ${sIdx}, 'icon', this.value)" class="editor-input" style="width:100px;">
-                            <input type="text" placeholder="Label" value="${s.label}" oninput="updateSub(${gIdx}, ${sIdx}, 'label', this.value)" class="editor-input" style="flex:2;">
-                            <input type="text" placeholder="File.html" value="${s.file}" oninput="updateSub(${gIdx}, ${sIdx}, 'file', this.value)" class="editor-input" style="flex:2;">
-                            <button onclick="deleteSub(${gIdx}, ${sIdx})" style="border:none; background:none; color:#ef4444; cursor:pointer;"><i class="fas fa-times"></i></button>
+                        <div class="flex items-center gap-2 mt-3 pl-8">
+                            <input type="text" placeholder="Ikon" value="${s.icon || ''}" oninput="localNavData[${gIdx}].sub[${sIdx}].icon=this.value" class="editor-input w-40">
+                            <input type="text" placeholder="Label" value="${s.label}" oninput="localNavData[${gIdx}].sub[${sIdx}].label=this.value" class="editor-input flex-1">
+                            <input type="text" placeholder="File" value="${s.file}" oninput="localNavData[${gIdx}].sub[${sIdx}].file=this.value" class="editor-input flex-1">
+                            <button onclick="localNavData[${gIdx}].sub.splice(${sIdx}, 1); renderEditor();" class="text-red-400 px-2"><i class="fas fa-times"></i></button>
                         </div>
                     `;
                 });
             }
-
             card.innerHTML = `
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <i class="fas fa-grip-lines handle" style="cursor:grab; opacity:0.4"></i>
-                    <i class="fas fa-star btn-default ${g.isDefault ? 'is-active' : ''}" onclick="setDefault(${gIdx}, -1)" title="Set Default"></i>
-                    <input type="text" placeholder="Ikon FA" value="${g.icon}" oninput="navData[${gIdx}].icon=this.value; saveNav();" class="editor-input" style="width:120px;">
-                    <input type="text" placeholder="Judul" value="${g.title}" oninput="navData[${gIdx}].title=this.value; saveNav();" class="editor-input" style="flex:2; font-weight:700;">
-                    <input type="text" placeholder="File (Tipe Langsung)" value="${g.file || ''}" oninput="navData[${gIdx}].file=this.value; saveNav();" class="editor-input" style="flex:2;">
-                    <button onclick="navData.splice(${gIdx},1); saveNav(); renderEditor();" style="border:none; background:none; color:#ef4444; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                <div class="flex items-center gap-3 mb-2">
+                    <i class="fas fa-grip-vertical handle cursor-grab opacity-20"></i>
+                    <input type="text" value="${g.icon || 'fas fa-book'}" oninput="localNavData[${gIdx}].icon=this.value" class="editor-input w-40 font-bold">
+                    <input type="text" value="${g.title}" oninput="localNavData[${gIdx}].title=this.value" class="editor-input flex-1 font-bold">
+                    <button onclick="localNavData.splice(${gIdx},1); renderEditor();" class="text-red-500 px-2"><i class="fas fa-trash-alt"></i></button>
                 </div>
                 <div id="sub-list-${gIdx}">${subHtml}</div>
-                <button onclick="addSub(${gIdx})" style="margin-top:12px; margin-left:25px; font-size:0.75rem; padding:8px 15px; border:1px dashed var(--primary); background:none; color:var(--primary); border-radius:8px; cursor:pointer;">+ SUB MENU</button>
+                <button onclick="addSub(${gIdx})" class="mt-4 ml-8 text-xs font-bold text-[var(--primary)] uppercase">+ Tambah sub-menu</button>
             `;
             list.appendChild(card);
         });
-        new Sortable(list, { handle:'.handle', animation:150, onEnd: (e) => { const item = navData.splice(e.oldIndex, 1)[0]; navData.splice(e.newIndex, 0, item); saveNav(); } });
+        new Sortable(list, { handle:'.handle', animation:150, onEnd: (e) => { const item = localNavData.splice(e.oldIndex, 1)[0]; localNavData.splice(e.newIndex, 0, item); } });
     }
 
-    function setDefault(gIdx, sIdx) {
-        navData.forEach(g => { 
-            delete g.isDefault; 
-            if(g.sub) g.sub.forEach(s => delete s.isDefault);
+    function addSub(gIdx) { 
+        if(!localNavData[gIdx].sub) localNavData[gIdx].sub = []; 
+        localNavData[gIdx].sub.push({ id: 's'+Date.now()+Math.random(), label: 'Menu Baru', file: 'index.html', icon: 'fas fa-file-alt' }); 
+        renderEditor(); 
+    }
+    
+    function addGroup() { 
+        localNavData.push({ id: 'g'+Date.now()+Math.random(), title: 'Kategori Baru', icon: 'fas fa-book', sub: [] }); 
+        renderEditor(); 
+    }
+
+    function saveNav() { 
+        db.ref('navigationConfig').set(localNavData).then(() => {
+            alert('Konfigurasi navigasi disimpan!');
         });
-        if(sIdx === -1) navData[gIdx].isDefault = true;
-        else navData[gIdx].sub[sIdx].isDefault = true;
-        saveNav();
-        renderEditor();
     }
-
-    function updateSub(gIdx, sIdx, field, val) { navData[gIdx].sub[sIdx][field] = val; saveNav(); }
-    function addSub(gIdx) { if(!navData[gIdx].sub) navData[gIdx].sub = []; navData[gIdx].sub.push({ id: 's'+Date.now(), label: 'Menu Baru', file: 'index.html', icon: 'far fa-circle' }); saveNav(); renderEditor(); }
-    function deleteSub(gIdx, sIdx) { navData[gIdx].sub.splice(sIdx, 1); saveNav(); renderEditor(); }
-    function addGroup() { navData.push({ id: 'g'+Date.now(), title: 'Menu Baru', icon: 'fas fa-folder', file: '', sub: [] }); saveNav(); renderEditor(); }
-    function saveNav() { db.ref('navigationConfig').set(navData); }
 </script>
 </body>
 </html>
