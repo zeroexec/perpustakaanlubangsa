@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <script>
+        if (sessionStorage.getItem('isAdmin') !== 'true') {
+            window.location.replace('login.html');
+            document.write('Akses ditolak. Mengalihkan...');
+        }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LUBANGSA Digital Library - Admin</title>
     <link rel="icon" type="image/png" href="logo.png">
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -28,14 +33,36 @@
             --text-muted: #bdc1c6;
             --border: #3c4043;
         }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg-body); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; }
-        .sidebar { width: 280px; background: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 40; }
-        .brand-section { padding: 30px 20px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 12px; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            background: var(--bg-body); 
+            color: var(--text-main); 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+        }
+        .sidebar { 
+            width: 280px; 
+            background: var(--bg-sidebar); 
+            border-right: 1px solid var(--border); 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0; 
+            z-index: 40; 
+            height: 100vh;
+        }
+        .brand-section { 
+            padding: 30px 20px; 
+            border-bottom: 1px solid var(--border); 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+        }
         .brand-icon { font-size: 1.5rem; color: var(--primary); }
         .brand-text { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; color: var(--text-main); line-height: 1.2; text-transform: uppercase; }
         .brand-text span { color: var(--primary); }
         .nav-item .nav-header { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: 600; font-size: 0.88rem; transition: 0.2s; color: var(--text-main); }
-        .nav-item.active .nav-header { color: var(--primary); }
+        .nav-item.active .nav-header, .nav-item.direct-active { color: var(--primary); background: var(--bg-active); border-left: 4px solid var(--primary); }
         .sub-wrapper { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
         .nav-item.active .sub-wrapper { grid-template-rows: 1fr; }
         .sub-content { overflow: hidden; }
@@ -51,44 +78,23 @@
             border-left: 4px solid transparent;
         }
         .sub-content a:hover { background: rgba(0,0,0,0.03); color: var(--text-main); }
-        body.dark-theme .sub-content a:hover { background: rgba(255,255,255,0.03); }
         .sub-content a.active { 
             color: var(--primary); 
             background: var(--bg-active); 
             font-weight: 700; 
             border-left: 4px solid var(--primary);
         }
-        .main { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; position: relative; }
+        .main { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; position: relative; overflow: hidden; }
         .frame-box { background: var(--bg-sidebar); flex-grow: 1; margin: 12px; border-radius: 8px; border: 1px solid var(--border); overflow: hidden; position: relative; }
-        iframe, #nav-editor-ui { width: 100%; height: 100%; border: none; display: none; }
-        iframe.active, #nav-editor-ui.active { display: block; }
-        #nav-editor-ui { padding: 40px; overflow-y: auto; background: var(--bg-sidebar); }
-        .editor-input { border: 1px solid var(--border); padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; background: transparent; color: var(--text-main); outline: none; }
-        .save-btn-container { position: absolute; top: 25px; right: 40px; z-index: 50; display: none; }
-        .btn-save { background: var(--primary); color: white; padding: 8px 24px; border-radius: 4px; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
+        iframe { width: 100%; height: 100%; border: none; display: none; }
+        iframe.active { display: block; }
         .chevron { transition: transform 0.3s ease; font-size: 0.7rem; }
     </style>
 </head>
 <body>
-<div id="login-screen" class="fixed inset-0 z-[10000] bg-[var(--bg-body)] flex items-center justify-center">
-    <div class="bg-[var(--bg-sidebar)] p-12 rounded-lg shadow-xl border border-[var(--border)] w-full max-w-sm text-center">
-        <div class="flex flex-col items-center mb-8">
-            <i class="fas fa-book-reader text-4xl mb-4" style="color:var(--primary)"></i>
-            <div class="brand-text text-xl">
-                PERPUSTAKAAN <span>LUBANGSA</span>
-            </div>
-        </div>
-        <div onkeydown="if(event.key === 'Enter') handleLogin()" class="space-y-4">
-            <input type="text" id="login-user" placeholder="Username" class="w-full p-3 rounded border dark:bg-transparent dark:border-slate-700 outline-none focus:border-blue-500">
-            <input type="password" id="login-pass" placeholder="Password" class="w-full p-3 rounded border dark:bg-transparent dark:border-slate-700 outline-none focus:border-blue-500">
-            <button onclick="handleLogin()" class="w-full py-3 bg-[#1a73e8] text-white font-bold rounded">MASUK</button>
-        </div>
-        <p id="login-err" class="text-red-500 text-xs mt-4"></p>
-    </div>
-</div>
-<div id="main-app" class="hidden flex w-full h-screen">
+<div id="main-app" class="flex w-full h-screen">
     <aside class="sidebar">
-        <div class="brand-section" onclick="openNavEditor()">
+        <div class="brand-section">
             <i class="fas fa-book-reader brand-icon"></i>
             <div class="brand-text">
                 PERPUSTAKAAN <span>LUBANGSA</span>
@@ -105,21 +111,7 @@
         </div>
     </aside>
     <main class="main">
-        <div id="save-area" class="save-btn-container">
-            <button onclick="saveNav()" class="btn-save">SIMPAN PERUBAHAN</button>
-        </div>
-        <div class="frame-box" id="frame-container">
-            <div id="nav-editor-ui">
-                <div class="mb-10 pb-6 border-b border-[var(--border)]">
-                    <h2 class="text-2xl font-bold">Setelan Navigasi</h2>
-                    <p class="text-sm text-[var(--text-muted)] mt-1">Kelola kategori menu untuk perpustakaan digital.</p>
-                </div>
-                <div id="editor-list"></div>
-                <button onclick="addGroup()" class="w-full py-5 border-2 border-dashed border-[var(--border)] rounded-lg font-bold text-[var(--text-muted)] hover:bg-slate-50 dark:hover:bg-white/5 mt-6 transition-all">
-                    + TAMBAH KATEGORI UTAMA
-                </button>
-            </div>
-        </div>
+        <div class="frame-box" id="frame-container"></div>
     </main>
 </div>
 <script>
@@ -130,177 +122,145 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let navData = [], isDarkMode = false, credentials = {}, isInitialLoad = true;
-    let localNavData = [];
+    let isDarkMode = false;
 
-    db.ref('/').on('value', snap => {
-        const data = snap.val() || {};
-        navData = data.navigationConfig || [];
-        isDarkMode = data.settings?.dark_mode || false;
-        credentials = data.admin_credentials || { user: 'admin', pass: 'admin123' };
-        applyTheme(isDarkMode);
-        renderSidebar();
-        if (isInitialLoad && navData.length > 0) {
-            setTimeout(autoOpenFirst, 100);
-            isInitialLoad = false;
+    const navData = [
+        { id: "beranda", title: "Beranda", icon: "fas fa-home", file: "beranda.html" },
+        { id: "sirkulasi", title: "Sirkulasi", icon: "fas fa-sync", file: "sirkulasi.html" },
+        { 
+            id: "data", 
+            title: "Data", 
+            icon: "fas fa-database", 
+            sub: [
+                { id: "biblio", label: "Bibliografi", file: "daftarbibliografi.html", icon: "fas fa-book" },
+                { id: "anggota", label: "Keanggotaan", file: "keanggotaan.html", icon: "fas fa-users" }
+            ]
+        },
+        { 
+            id: "cetak", 
+            title: "Percetakan", 
+            icon: "fas fa-print", 
+            sub: [
+                { id: "label", label: "Cetak Label", file: "label.html", icon: "fas fa-tag" },
+                { id: "barcode", label: "Cetak Barcode", file: "barcode.html", icon: "fas fa-barcode" }
+            ]
         }
+    ];
+
+    db.ref('settings/dark_mode').on('value', snap => {
+        isDarkMode = snap.val() || false;
+        applyTheme(isDarkMode);
     });
 
-    function handleLogin() {
-        const u = document.getElementById('login-user').value, p = document.getElementById('login-pass').value;
-        if (u === credentials.user && p === credentials.pass) {
-            sessionStorage.setItem('isAdmin', 'true');
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('main-app').style.display = 'flex';
-            if (navData.length > 0) setTimeout(autoOpenFirst, 100);
-        } else {
-            document.getElementById('login-err').innerText = "Kredensial salah!";
-        }
-    }
-    if (sessionStorage.getItem('isAdmin') === 'true') {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'flex';
-    }
-
-    function autoOpenFirst() {
-        if (!navData.length) return;
-        const firstGroup = navData[0];
-        toggleMenu(`nav-${firstGroup.id}`);
-        if (firstGroup.sub && firstGroup.sub.length > 0) {
-            const firstSub = firstGroup.sub[0];
-            const firstSubLink = document.querySelector(`#nav-${firstGroup.id} .sub-content a`);
-            if (firstSubLink) loadFrame(firstSub.id, firstSub.file, firstSub.label, firstSubLink);
-        }
-    }
-
     function toggleDarkMode() { db.ref('settings/dark_mode').set(!isDarkMode); }
+    
     function applyTheme(dark) {
         document.body.classList.toggle('dark-theme', dark);
-        document.getElementById('themeIcon').className = dark ? 'fas fa-sun' : 'fas fa-moon';
-        document.getElementById('themeText').innerText = dark ? 'Mode Terang' : 'Mode Gelap';
+        const icon = document.getElementById('themeIcon');
+        const text = document.getElementById('themeText');
+        if (icon && text) {
+            icon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+            text.innerText = dark ? 'Mode Terang' : 'Mode Gelap';
+        }
     }
-    function handleLogout() { sessionStorage.removeItem('isAdmin'); window.location.reload(); }
+
+    function handleLogout() { 
+        sessionStorage.removeItem('isAdmin'); 
+        window.location.replace('login.html'); 
+    }
 
     function renderSidebar() {
         const container = document.getElementById('dynamic-nav');
-        const activeSubId = document.querySelector('.sub-content a.active')?.getAttribute('data-id');
-        const activeGroupId = document.querySelector('.nav-item.active')?.id;
         container.innerHTML = '';
-        navData.forEach(g => {
-            const item = document.createElement('div');
-            item.className = 'nav-item' + (activeGroupId === `nav-${g.id}` ? ' active' : '');
-            item.id = `nav-${g.id}`;
-            item.innerHTML = `
-                <div class="nav-header" onclick="toggleMenu('nav-${g.id}')">
-                    <span><i class="${g.icon || 'fas fa-folder'} mr-3 w-5 text-center"></i> ${g.title}</span>
-                    <i class="fas fa-chevron-down chevron" style="transform:${activeGroupId === `nav-${g.id}` ? 'rotate(180deg)' : 'rotate(0deg)'}"></i>
-                </div>
-                <div class="sub-wrapper"><div class="sub-content"></div></div>
-            `;
-            const subBox = item.querySelector('.sub-content');
-            if(g.sub) g.sub.forEach(s => {
-                const a = document.createElement('a'); a.href = "#";
-                a.setAttribute('data-id', s.id);
-                if(activeSubId === s.id) a.className = 'active';
-                a.innerHTML = `<i class="${s.icon || 'far fa-circle'} text-[10px] w-5 text-center"></i> ${s.label}`;
-                a.onclick = (e) => { e.preventDefault(); loadFrame(s.id, s.file, s.label, a); };
-                subBox.appendChild(a);
-            });
-            container.appendChild(item);
+        navData.forEach(item => {
+            const navEl = document.createElement('div');
+            navEl.className = 'nav-item';
+            navEl.id = `nav-${item.id}`;
+
+            if (item.sub) {
+                navEl.innerHTML = `
+                    <div class="nav-header" onclick="toggleMenu('${item.id}')">
+                        <span><i class="${item.icon} mr-3 w-5 text-center"></i> ${item.title}</span>
+                        <i class="fas fa-chevron-down chevron"></i>
+                    </div>
+                    <div class="sub-wrapper"><div class="sub-content"></div></div>
+                `;
+                const subBox = navEl.querySelector('.sub-content');
+                item.sub.forEach(s => {
+                    const a = document.createElement('a');
+                    a.href = "#";
+                    a.innerHTML = `<i class="${s.icon} text-[10px] w-5 text-center"></i> ${s.label}`;
+                    a.onclick = (e) => { e.preventDefault(); loadFrame(s.id, s.file, a); };
+                    subBox.appendChild(a);
+                });
+            } else {
+                navEl.innerHTML = `
+                    <div class="nav-header" onclick="loadFrame('${item.id}', '${item.file}', this)">
+                        <span><i class="${item.icon} mr-3 w-5 text-center"></i> ${item.title}</span>
+                    </div>
+                `;
+            }
+            container.appendChild(navEl);
         });
+
+        const first = navData[0];
+        const firstEl = document.querySelector(`#nav-${first.id} .nav-header`);
+        loadFrame(first.id, first.file, firstEl);
     }
 
     function toggleMenu(id) {
-        const target = document.getElementById(id);
-        if(!target) return;
+        const target = document.getElementById(`nav-${id}`);
         const isActive = target.classList.contains('active');
         document.querySelectorAll('.nav-item').forEach(el => {
-            el.classList.remove('active');
-            const c = el.querySelector('.chevron');
-            if(c) c.style.transform = 'rotate(0deg)';
+            if (el.id !== `nav-${id}`) {
+                el.classList.remove('active');
+                const ch = el.querySelector('.chevron');
+                if(ch) ch.style.transform = 'rotate(0deg)';
+            }
         });
         if(!isActive) {
             target.classList.add('active');
-            const c = target.querySelector('.chevron');
-            if(c) c.style.transform = 'rotate(180deg)';
+            const ch = target.querySelector('.chevron');
+            if(ch) ch.style.transform = 'rotate(180deg)';
+        } else {
+            target.classList.remove('active');
+            const ch = target.querySelector('.chevron');
+            if(ch) ch.style.transform = 'rotate(0deg)';
         }
     }
 
-    function loadFrame(id, src, label, el) {
-        document.getElementById('nav-editor-ui').classList.remove('active');
-        document.getElementById('save-area').style.display = 'none';
+    function loadFrame(id, src, el) {
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('direct-active'));
         document.querySelectorAll('.sub-content a').forEach(a => a.classList.remove('active'));
-        el.classList.add('active');
+        
+        if (el.tagName === 'A') {
+            el.classList.add('active');
+            const parentNav = el.closest('.nav-item');
+            parentNav.classList.add('active');
+            const ch = parentNav.querySelector('.chevron');
+            if(ch) ch.style.transform = 'rotate(180deg)';
+        } else {
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active');
+                const ch = nav.querySelector('.chevron');
+                if(ch) ch.style.transform = 'rotate(0deg)';
+            });
+            el.parentElement.classList.add('direct-active');
+        }
+
         const container = document.getElementById('frame-container');
         let f = document.getElementById(`ifr-${id}`);
         if(!f) {
             f = document.createElement('iframe');
             f.id = `ifr-${id}`;
+            f.src = src;
             container.appendChild(f);
         }
         document.querySelectorAll('iframe').forEach(ifr => ifr.classList.remove('active'));
-        if(!f.src || f.src.indexOf(src) === -1) f.src = src;
         f.classList.add('active');
     }
 
-    function openNavEditor() {
-        document.querySelectorAll('iframe').forEach(ifr => ifr.classList.remove('active'));
-        document.getElementById('nav-editor-ui').classList.add('active');
-        document.getElementById('save-area').style.display = 'block';
-        localNavData = JSON.parse(JSON.stringify(navData));
-        renderEditor();
-    }
-
-    function renderEditor() {
-        const list = document.getElementById('editor-list');
-        list.innerHTML = '';
-        localNavData.forEach((g, gIdx) => {
-            const card = document.createElement('div');
-            card.className = "mb-6 p-6 border border-[var(--border)] rounded-lg bg-[var(--bg-body)]";
-            let subHtml = '';
-            if(g.sub) {
-                g.sub.forEach((s, sIdx) => {
-                    subHtml += `
-                        <div class="flex items-center gap-2 mt-3 pl-8">
-                            <input type="text" placeholder="Ikon" value="${s.icon || ''}" oninput="localNavData[${gIdx}].sub[${sIdx}].icon=this.value" class="editor-input w-40">
-                            <input type="text" placeholder="Label" value="${s.label}" oninput="localNavData[${gIdx}].sub[${sIdx}].label=this.value" class="editor-input flex-1">
-                            <input type="text" placeholder="File" value="${s.file}" oninput="localNavData[${gIdx}].sub[${sIdx}].file=this.value" class="editor-input flex-1">
-                            <button onclick="localNavData[${gIdx}].sub.splice(${sIdx}, 1); renderEditor();" class="text-red-400 px-2"><i class="fas fa-times"></i></button>
-                        </div>
-                    `;
-                });
-            }
-            card.innerHTML = `
-                <div class="flex items-center gap-3 mb-2">
-                    <i class="fas fa-grip-vertical handle cursor-grab opacity-20"></i>
-                    <input type="text" value="${g.icon || 'fas fa-book'}" oninput="localNavData[${gIdx}].icon=this.value" class="editor-input w-40 font-bold">
-                    <input type="text" value="${g.title}" oninput="localNavData[${gIdx}].title=this.value" class="editor-input flex-1 font-bold">
-                    <button onclick="localNavData.splice(${gIdx},1); renderEditor();" class="text-red-500 px-2"><i class="fas fa-trash-alt"></i></button>
-                </div>
-                <div id="sub-list-${gIdx}">${subHtml}</div>
-                <button onclick="addSub(${gIdx})" class="mt-4 ml-8 text-xs font-bold text-[var(--primary)] uppercase">+ Tambah sub-menu</button>
-            `;
-            list.appendChild(card);
-        });
-        new Sortable(list, { handle:'.handle', animation:150, onEnd: (e) => { const item = localNavData.splice(e.oldIndex, 1)[0]; localNavData.splice(e.newIndex, 0, item); } });
-    }
-
-    function addSub(gIdx) { 
-        if(!localNavData[gIdx].sub) localNavData[gIdx].sub = []; 
-        localNavData[gIdx].sub.push({ id: 's'+Date.now()+Math.random(), label: 'Menu Baru', file: 'index.html', icon: 'fas fa-file-alt' }); 
-        renderEditor(); 
-    }
-    
-    function addGroup() { 
-        localNavData.push({ id: 'g'+Date.now()+Math.random(), title: 'Kategori Baru', icon: 'fas fa-book', sub: [] }); 
-        renderEditor(); 
-    }
-
-    function saveNav() { 
-        db.ref('navigationConfig').set(localNavData).then(() => {
-            alert('Konfigurasi navigasi disimpan!');
-        });
-    }
+    renderSidebar();
 </script>
 </body>
 </html>
