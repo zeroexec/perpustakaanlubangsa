@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - LUBANGSA Digital Library</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --bg-body: #f8f9fa;
+            --bg-sidebar: #ffffff;
+            --text-main: #3c4043;
+            --border: #dadce0;
+        }
+        body.dark-theme {
+            --bg-body: #202124;
+            --bg-sidebar: #28292c;
+            --text-main: #e8eaed;
+            --border: #3c4043;
+        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg-body); color: var(--text-main); }
+        .brand-text { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; text-transform: uppercase; }
+        .brand-text span { color: var(--primary); }
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen">
+<div id="login-screen" class="bg-[var(--bg-sidebar)] p-12 rounded-lg shadow-xl border border-[var(--border)] w-full max-w-sm text-center">
+    <div class="flex flex-col items-center mb-8">
+        <i class="fas fa-book-reader text-4xl mb-4" style="color:var(--primary)"></i>
+        <div class="brand-text text-xl">
+            PERPUSTAKAAN <span>LUBANGSA</span>
+        </div>
+    </div>
+    <div onkeydown="if(event.key === 'Enter') handleLogin()" class="space-y-4">
+        <input type="text" id="login-user" placeholder="Username" class="w-full p-3 rounded border bg-transparent border-[var(--border)] outline-none focus:border-blue-500">
+        <input type="password" id="login-pass" placeholder="Password" class="w-full p-3 rounded border bg-transparent border-[var(--border)] outline-none focus:border-blue-500">
+        <button onclick="handleLogin()" class="w-full py-3 bg-[#1a73e8] text-white font-bold rounded">MASUK</button>
+    </div>
+    <p id="login-err" class="text-red-500 text-xs mt-4"></p>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ",
+        databaseURL: "https://databuku-6385c-default-rtdb.firebaseio.com",
+        projectId: "databuku-6385c",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    let credentials = {};
+
+    db.ref('/').on('value', snap => {
+        const data = snap.val() || {};
+        credentials = data.admin_credentials || { user: 'admin', pass: 'admin123' };
+        if (data.settings?.dark_mode) {
+            document.body.classList.add('dark-theme');
+        } else {
+            document.body.classList.remove('dark-theme');
+        }
+    });
+
+    function handleLogin() {
+        const u = document.getElementById('login-user').value, p = document.getElementById('login-pass').value;
+        if (u === credentials.user && p === credentials.pass) {
+            sessionStorage.setItem('isAdmin', 'true');
+            window.location.href = 'index.html';
+        } else {
+            document.getElementById('login-err').innerText = "Kredensial salah!";
+        }
+    }
+
+    if (sessionStorage.getItem('isAdmin') === 'true') {
+        window.location.href = 'index.html';
+    }
+</script>
+</body>
+</html>
