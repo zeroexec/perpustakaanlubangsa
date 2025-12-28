@@ -1,343 +1,124 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <script>
-        if (sessionStorage.getItem('isAdmin') !== 'true') {
-            window.location.replace('login.html');
-            document.write('Akses ditolak. Mengalihkan...');
-        }
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LUBANGSA Digital Library - Admin</title>
-    <link rel="icon" type="image/png" href="logo.png">
+    <title>Beranda - LUBANGSA Digital Library</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #1a73e8;
-            --bg-body: #f8f9fa;
-            --bg-sidebar: #ffffff;
-            --bg-box: #ffffff;
-            --bg-active: #e8f0fe;
-            --text-main: #3c4043;
-            --text-muted: #5f6368;
-            --border: #dadce0;
+            --bg-page: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --accent: #1a73e8;
         }
         body.dark-theme {
-            --bg-body: #202124;
-            --bg-sidebar: #202124;
-            --bg-box: #28292c;
-            --bg-active: #3c4043;
-            --text-main: #e8eaed;
-            --text-muted: #bdc1c6;
-            --border: #3c4043;
+            --bg-page: #28292c;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border-color: #3f3f46;
         }
-        body { 
-            font-family: 'Segoe UI', Tahoma, sans-serif; 
-            background: var(--bg-body); 
-            color: var(--text-main); 
-            height: 100vh; 
-            overflow: hidden; 
-            display: flex; 
-            transition: background 0.3s, color 0.3s;
-        }
-        .sidebar { 
-            width: 270px; 
-            background: var(--bg-sidebar); 
-            border-right: 1px solid var(--border); 
-            display: flex; 
-            flex-direction: column; 
-            flex-shrink: 0; 
-            z-index: 50; 
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, sans-serif;
             height: 100vh;
-        }
-        .brand-section { 
-            padding: 24px 20px; 
-            display: flex; 
-            align-items: center; 
-            gap: 12px;
-            border-bottom: 1px solid var(--border);
-        }
-        .brand-icon { 
-            font-size: 1.25rem; 
-            color: var(--primary);
-        }
-        .brand-text { font-size: 0.95rem; font-weight: 800; color: var(--text-main); line-height: 1.2; letter-spacing: 0.5px; text-transform: uppercase; }
-        .brand-text span { color: var(--primary); }
-        
-        .nav-container { padding: 12px; }
-        .nav-item { margin-bottom: 4px; }
-        .nav-header { 
-            padding: 12px 16px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            cursor: pointer; 
-            font-weight: 600; 
-            font-size: 0.875rem; 
-            border-radius: 8px;
-            transition: all 0.2s ease; 
-            color: var(--text-main); 
-        }
-        .nav-header:hover {
-            background: var(--bg-active);
-        }
-        .nav-item.active .nav-header, .nav-item.direct-active .nav-header { 
-            color: var(--primary); 
-            background: var(--bg-active); 
-        }
-        
-        .sub-wrapper { 
-            display: grid; 
-            grid-template-rows: 0fr; 
-            transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-        }
-        .nav-item.open .sub-wrapper { grid-template-rows: 1fr; }
-        .sub-content { overflow: hidden; padding-left: 16px; }
-        .sub-content a { 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
-            padding: 10px 16px; 
-            margin: 2px 0;
-            text-decoration: none; 
-            color: var(--text-muted); 
-            font-size: 0.85rem; 
-            border-radius: 8px;
-            transition: all 0.2s ease;
-            font-weight: 500;
-        }
-        .sub-content a:hover { color: var(--text-main); background: rgba(0,0,0,0.05); }
-        body.dark-theme .sub-content a:hover { background: rgba(255,255,255,0.05); }
-        .sub-content a.active { 
-            color: var(--primary); 
-            background: var(--bg-active); 
-            font-weight: 700; 
-        }
-        
-        .main { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; position: relative; overflow: hidden; }
-        .frame-box { 
-            background: var(--bg-box); 
-            flex-grow: 1; 
-            margin: 16px; 
-            border-radius: 12px; 
-            border: 1px solid var(--border); 
-            overflow: hidden; 
-            position: relative; 
+            margin: 0;
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+            transition: background 0.3s ease;
         }
-
-        .error-placeholder {
-            position: absolute;
+        .container {
+            text-align: center;
+        }
+        .logo-frame {
+            width: 180px;
+            height: 180px;
+            margin: 0 auto 30px;
+            padding: 20px;
+            background: var(--bg-page);
+            border: 2px solid var(--border-color);
+            border-radius: 40px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: center;
+            animation: zoomIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .logo-frame img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 20px;
+        }
+        .brand-name {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+            margin: 0;
+            animation: slideUp 0.8s ease-out both;
+            animation-delay: 0.3s;
+        }
+        .brand-name span {
+            color: var(--accent);
+        }
+        .tagline {
+            font-size: 0.9rem;
             color: var(--text-muted);
-            z-index: 1;
+            margin-top: 8px;
+            font-weight: 500;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            animation: slideUp 0.8s ease-out both;
+            animation-delay: 0.5s;
         }
-        .error-placeholder i { font-size: 3rem; opacity: 0.3; margin-bottom: 8px; }
-        .error-placeholder span { font-size: 0.85rem; opacity: 0.5; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
-
-        iframe { 
-            width: 100%; 
-            height: 100%; 
-            border: none; 
-            display: none; 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            z-index: 10;
-            background: transparent;
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
         }
-        iframe.active { display: block; }
-        .chevron { transition: transform 0.3s ease; font-size: 0.65rem; }
-        .nav-item.open .chevron { transform: rotate(180deg); }
-        
-        .sidebar-footer {
-            padding: 16px;
-            border-top: 1px solid var(--border);
-            margin-top: auto;
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .footer-btn {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            width: 100%;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            transition: 0.2s;
-            cursor: pointer;
-            color: var(--text-main);
+        @media (max-width: 640px) {
+            .logo-frame { width: 150px; height: 150px; }
+            .brand-name { font-size: 1.8rem; }
+            .tagline { font-size: 0.75rem; }
         }
-        .footer-btn:hover { background: var(--bg-active); }
     </style>
 </head>
 <body>
-<div id="main-app" class="flex w-full h-screen">
-    <aside class="sidebar">
-        <div class="brand-section">
-            <i class="fas fa-book-reader brand-icon"></i>
-            <div class="brand-text">
-                PERPUSTAKAAN<br><span>LUBANGSA</span>
-            </div>
+
+    <div class="container">
+        <div class="logo-frame">
+            <img src="logo.png" alt="Logo LUBANGSA">
         </div>
-        <div id="dynamic-nav" class="nav-container flex-grow overflow-y-auto"></div>
-        <div class="sidebar-footer">
-            <div class="footer-btn" onclick="toggleDarkMode()">
-                <i id="themeIcon" class="fas fa-moon"></i> <span id="themeText">Mode Gelap</span>
-            </div>
-            <div class="footer-btn text-red-500 mt-1" onclick="handleLogout()">
-                <i class="fas fa-power-off"></i> <span>Keluar</span>
-            </div>
-        </div>
-    </aside>
-    <main class="main">
-        <div class="frame-box" id="frame-container">
-            <div class="error-placeholder">
-                <i class="fas fa-face-frown-open"></i>
-                <span>Konten Tidak Ditemukan</span>
-            </div>
-        </div>
-    </main>
-</div>
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ",
-        databaseURL: "https://databuku-6385c-default-rtdb.firebaseio.com",
-        projectId: "databuku-6385c",
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    let isDarkMode = false;
+        <h1 class="brand-name">PERPUSTAKAAN <span>LUBANGSA</span></h1>
+        <p class="tagline">Digital Library System</p>
+    </div>
 
-    const navData = [
-        { id: "beranda", title: "Beranda", icon: "fas fa-home", file: "beranda.html" },
-        { id: "sirkulasi", title: "Sirkulasi", icon: "fas fa-sync-alt", file: "sirkulasi.html" },
-        { 
-            id: "data", 
-            title: "Data Master", 
-            icon: "fas fa-database", 
-            sub: [
-                { id: "biblio", label: "Bibliografi", file: "daftarbibliografi.html", icon: "fas fa-book" },
-                { id: "anggota", label: "Keanggotaan", file: "keanggotaan.html", icon: "fas fa-users" }
-            ]
-        },
-        { 
-            id: "cetak", 
-            title: "Percetakan", 
-            icon: "fas fa-print", 
-            sub: [
-                { id: "label", label: "Cetak Label", file: "label.html", icon: "fas fa-tag" },
-                { id: "barcode", label: "Cetak Barcode", file: "barcode.html", icon: "fas fa-barcode" }
-            ]
-        }
-    ];
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ",
+            databaseURL: "https://databuku-6385c-default-rtdb.firebaseio.com",
+            projectId: "databuku-6385c",
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-    db.ref('settings/dark_mode').on('value', snap => {
-        isDarkMode = snap.val() || false;
-        applyTheme(isDarkMode);
-    });
-
-    function toggleDarkMode() { db.ref('settings/dark_mode').set(!isDarkMode); }
-    
-    function applyTheme(dark) {
-        document.body.classList.toggle('dark-theme', dark);
-        const icon = document.getElementById('themeIcon');
-        const text = document.getElementById('themeText');
-        if (icon && text) {
-            icon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
-            text.innerText = dark ? 'Mode Terang' : 'Mode Gelap';
-        }
-    }
-
-    function handleLogout() { 
-        sessionStorage.removeItem('isAdmin'); 
-        window.location.replace('login.html'); 
-    }
-
-    function renderSidebar() {
-        const container = document.getElementById('dynamic-nav');
-        container.innerHTML = '';
-        navData.forEach(item => {
-            const navEl = document.createElement('div');
-            navEl.className = 'nav-item';
-            navEl.id = `nav-${item.id}`;
-
-            if (item.sub) {
-                navEl.innerHTML = `
-                    <div class="nav-header" onclick="toggleMenu('${item.id}')">
-                        <span><i class="${item.icon} mr-3 w-5 opacity-80"></i> ${item.title}</span>
-                        <i class="fas fa-chevron-down chevron"></i>
-                    </div>
-                    <div class="sub-wrapper"><div class="sub-content"></div></div>
-                `;
-                const subBox = navEl.querySelector('.sub-content');
-                item.sub.forEach(s => {
-                    const a = document.createElement('a');
-                    a.href = "#";
-                    a.innerHTML = `<i class="${s.icon} text-[10px] w-4 opacity-60"></i> ${s.label}`;
-                    a.onclick = (e) => { 
-                        e.preventDefault(); 
-                        loadFrame(s.id, s.file, a); 
-                    };
-                    subBox.appendChild(a);
-                });
+        db.ref('settings/dark_mode').on('value', snap => {
+            if (snap.val()) {
+                document.body.classList.add('dark-theme');
             } else {
-                navEl.innerHTML = `
-                    <div class="nav-header" onclick="loadFrame('${item.id}', '${item.file}', this)">
-                        <span><i class="${item.icon} mr-3 w-5 opacity-80"></i> ${item.title}</span>
-                    </div>
-                `;
+                document.body.classList.remove('dark-theme');
             }
-            container.appendChild(navEl);
         });
-
-        const first = navData[0];
-        const firstHeader = document.querySelector(`#nav-${first.id} .nav-header`);
-        loadFrame(first.id, first.file, firstHeader);
-    }
-
-    function toggleMenu(id) {
-        const target = document.getElementById(`nav-${id}`);
-        const isOpen = target.classList.contains('open');
-        document.querySelectorAll('.nav-item').forEach(el => {
-            if (el !== target) el.classList.remove('open');
-        });
-        target.classList.toggle('open', !isOpen);
-    }
-
-    function loadFrame(id, src, el) {
-        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active', 'direct-active'));
-        document.querySelectorAll('.sub-content a').forEach(a => a.classList.remove('active'));
-        
-        if (el.tagName === 'A') {
-            el.classList.add('active');
-            el.closest('.nav-item').classList.add('active', 'open');
-        } else {
-            el.closest('.nav-item').classList.add('direct-active');
-        }
-
-        const container = document.getElementById('frame-container');
-        let f = document.getElementById(`ifr-${id}`);
-        if(!f) {
-            f = document.createElement('iframe');
-            f.id = `ifr-${id}`;
-            f.src = src;
-            f.setAttribute('loading', 'lazy');
-            container.appendChild(f);
-        }
-        document.querySelectorAll('iframe').forEach(ifr => ifr.classList.remove('active'));
-        f.classList.add('active');
-    }
-
-    renderSidebar();
-</script>
+    </script>
 </body>
 </html>
