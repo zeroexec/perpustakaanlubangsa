@@ -8,166 +8,263 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        :root { --bg: #f8fafc; --card: #ffffff; --primary: #2563eb; --text: #0f172a; --border: #f1f5f9; }
-        body.dark-theme { --bg: #020617; --card: #0f172a; --primary: #3b82f6; --text: #f1f5f9; --border: #1e293b; }
+        :root { 
+            --primary: #1a73e8;
+            --primary-hover: #1557b0;
+            --bg-body: #f8f9fa; 
+            --text-main: #202124; 
+            --text-sub: #5f6368;
+            --bg-card: #ffffff;
+            --border-color: #dadce0;
+            --input-bg: #f1f3f4;
+            --primary-light: #e8f0fe;
+            --modal-overlay: rgba(32, 33, 36, 0.6);
+        }
+
+        body.dark-theme { 
+            --bg-body: #121212; 
+            --text-main: #e8eaed; 
+            --text-sub: #9aa0a6;
+            --bg-card: #1e1e1e;
+            --border-color: #3c4043;
+            --input-bg: #2d2d2d;
+            --primary-light: rgba(26, 115, 232, 0.2);
+            --modal-overlay: rgba(0, 0, 0, 0.8);
+        }
 
         body { 
-            background-color: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif;
-            height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden;
+            background-color: var(--bg-body); 
+            color: var(--text-main); 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            height: 100vh; 
+            display: flex; 
+            align-items: flex-start; 
+            justify-content: center; 
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+            padding-top: 20px;
         }
 
-        .glass { background: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px -1px rgba(0,0,0,0.05); }
+        .glass { 
+            background: var(--bg-card); 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1); 
+            border-radius: 20px;
+        }
         
         input { 
-            background: var(--bg) !important; color: var(--text) !important; 
-            border: 1.5px solid var(--border) !important; transition: all 0.2s;
+            background: var(--input-bg) !important; 
+            color: var(--text-main) !important; 
+            border: 2px solid transparent !important; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .autocomplete-container { position: relative; width: 100%; }
+        input:focus {
+            border-color: var(--primary) !important;
+            background: var(--bg-card) !important;
+            box-shadow: 0 0 0 4px var(--primary-light);
+        }
 
         .autocomplete-list { 
             position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
+            top: calc(100% + 8px);
+            left: 0; right: 0;
             z-index: 1000;
-            background: var(--card); 
-            border: 1px solid var(--border); 
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); 
-            border-radius: 1rem;
-            margin-top: 4px;
-            max-height: 200px;
+            background: var(--bg-card); 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 12px 40px rgba(0,0,0,0.2); 
+            border-radius: 16px;
+            max-height: 280px;
             overflow-y: auto;
-            overflow-x: hidden;
+            padding: 4px;
+        }
+
+        .autocomplete-header {
+            padding: 10px 14px 4px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+            opacity: 0.6;
         }
 
         .autocomplete-item { 
-            padding: 12px 16px;
-            transition: all 0.1s ease; 
-            border-bottom: 1px solid var(--border); 
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
             cursor: pointer;
-            font-size: 13px;
+            border-radius: 12px;
+            transition: all 0.2s;
+            margin-bottom: 2px;
         }
-        .autocomplete-item:last-child { border-bottom: none; }
-        .autocomplete-item.selected { background: rgba(37, 99, 235, 0.1); }
 
-        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; }
-        .toast-msg { background: #0f172a; color: #fff; padding: 6px 16px; border-radius: 99px; font-size: 11px; font-weight: 600; animation: slideUp 0.3s ease-out; }
+        .autocomplete-item:hover, .autocomplete-item.selected { 
+            background: var(--primary-light); 
+        }
 
-        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .kbd-badge { background: rgba(0,0,0,0.05); border-radius: 4px; padding: 1px 5px; font-family: monospace; font-size: 9px; }
-        body.dark-theme .kbd-badge { background: rgba(255,255,255,0.1); }
+        .kbd-badge { 
+            background: var(--primary); 
+            color: white; 
+            border-radius: 6px; 
+            padding: 2px 8px; 
+            font-family: monospace; 
+            font-size: 10px; 
+            font-weight: 700; 
+        }
 
-        #summary-detail, #success-card, #modal-confirm, #modal-date { display: none; }
+        #toast-container { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; }
+        .toast-msg { background: var(--text-main); color: var(--bg-card); padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+        .modal-container {
+            position: fixed; inset: 0; z-index: 100;
+            display: none; align-items: center; justify-content: center;
+            padding: 20px; background: var(--modal-overlay);
+            backdrop-filter: blur(4px);
+        }
+
+        .btn-action {
+            padding: 10px; border-radius: 12px; font-weight: 700; font-size: 10px;
+            text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-secondary { background: var(--input-bg); color: var(--text-main); }
+
+        #summary-detail, #success-card { display: none; }
+        
+        .main-id-text {
+            color: var(--primary);
+            font-family: monospace;
+            font-weight: 800;
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
     </style>
 </head>
-<body class="p-4">
+<body>
 
 <div id="toast-container"></div>
 
-<div id="modal-confirm" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-    <div class="glass w-full max-w-xs p-6 rounded-[1.5rem] animate-in zoom-in duration-200">
-        <h4 class="text-md font-extrabold mb-2">Konfirmasi</h4>
-        <p id="modal-text" class="text-xs opacity-60 mb-6"></p>
-        <div class="flex gap-2">
-            <button onclick="closeModal()" class="flex-1 py-3 rounded-xl font-bold text-xs bg-slate-100 dark:bg-slate-800">Batal</button>
-            <button id="modal-confirm-btn" class="flex-1 py-3 rounded-xl font-bold text-xs bg-blue-600 text-white">Ya</button>
-        </div>
-    </div>
-</div>
-
-<div id="modal-date" class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-    <div class="glass w-full max-w-xs p-6 rounded-[1.5rem] animate-in zoom-in duration-200">
-        <h4 class="text-md font-extrabold mb-4 text-center">Custom Tanggal Kembali</h4>
-        <input type="date" id="customDatePicker" class="w-full p-4 rounded-xl mb-4 outline-none text-sm">
-        <div class="flex gap-2">
-            <button onclick="closeDateModal()" class="flex-1 py-3 rounded-xl font-bold text-xs bg-slate-100 dark:bg-slate-800">Batal</button>
-            <button id="saveDateBtn" class="flex-1 py-3 rounded-xl font-bold text-xs bg-blue-600 text-white shadow-lg shadow-blue-600/20">Simpan Tanggal</button>
-        </div>
-    </div>
-</div>
-
-<div class="w-full max-w-md">
-    <div id="main-input-area" class="space-y-4">
-        <div class="glass p-6 rounded-[1.5rem]">
-            <div class="flex items-center gap-2 mb-4">
-                <div class="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center text-white text-xs shadow-lg shadow-blue-500/20">
-                    <i class="fas fa-book-reader"></i>
-                </div>
-                <h3 class="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">Sirkulasi Perpustakaan</h3>
-            </div>
-            
-            <div class="autocomplete-container">
-                <input type="text" id="inputMain" autocomplete="off" placeholder="Cari Anggota / Buku..." class="w-full p-4 rounded-xl outline-none text-sm font-semibold">
-                <div id="listMain" class="autocomplete-list hidden"></div>
-            </div>
-        </div>
-
-        <div id="summary-detail" class="glass p-6 rounded-[1.5rem] border-t-4 border-blue-600 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div class="flex justify-between items-start mb-4">
-                <div>
-                    <h4 id="displayNama" class="text-lg font-extrabold tracking-tight"></h4>
-                    <p class="text-[10px] opacity-40 font-mono"><span id="displayNis"></span> &bull; <span id="displayKamar"></span></p>
-                </div>
-                <button onclick="resetKeAwal()" class="text-red-400 hover:text-red-600 transition-colors"><i class="fas fa-times-circle"></i></button>
-            </div>
-
-            <div class="space-y-3">
-                <div class="autocomplete-container">
-                    <input type="text" id="inputBuku" autocomplete="off" placeholder="Scan Kode Buku..." class="w-full p-3 rounded-xl outline-none text-sm">
-                    <div id="listBuku" class="autocomplete-list hidden"></div>
-                </div>
-
-                <div id="bukuTerpilihBox" class="p-3 bg-blue-500/5 rounded-xl border border-blue-500/10 hidden">
-                    <p id="resJudul" class="font-bold text-[11px]"></p>
-                    <p id="resKode" class="text-[9px] opacity-40 font-mono mt-0.5 uppercase"></p>
-                </div>
-
-                <button id="btnProses" class="w-full py-3.5 bg-blue-600 text-white font-extrabold rounded-xl disabled:opacity-20 text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/10" disabled onclick="handleSimpan()">Simpan Transaksi</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="success-card" class="glass p-6 rounded-[1.5rem] border-b-8 border-green-500 animate-in zoom-in-95 duration-300">
+<div id="modal-confirm" class="modal-container">
+    <div class="glass w-full max-w-[300px] p-6 animate-in zoom-in duration-200">
         <div class="text-center mb-4">
-            <div id="iconStatus" class="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-2"></div>
-            <h3 id="statusTitle" class="text-md font-extrabold"></h3>
+            <h4 class="text-sm font-extrabold">Konfirmasi</h4>
+            <p id="modal-text" class="text-[11px] opacity-60 mt-2"></p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="closeModal()" class="flex-1 btn-action btn-secondary">Batal</button>
+            <button id="modal-confirm-btn" class="flex-1 btn-action btn-primary">Ya</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-date" class="modal-container">
+    <div class="glass w-full max-w-[300px] p-6 animate-in zoom-in duration-200">
+        <h4 class="text-sm font-extrabold mb-4 text-center">Ubah Tanggal</h4>
+        <div class="space-y-3">
+            <input type="date" id="customDatePicker" class="w-full p-3 rounded-xl outline-none text-xs font-semibold">
+            <div class="flex gap-2">
+                <button onclick="closeDateModal()" class="flex-1 btn-action btn-secondary">Batal</button>
+                <button id="saveDateBtn" class="flex-1 btn-action btn-primary">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="w-full max-w-[340px]">
+    <div id="main-input-area" class="glass p-5">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                    <i class="fas fa-exchange-alt text-xs"></i>
+                </div>
+                <div>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-blue-600">Sirkulasi</h3>
+                </div>
+            </div>
+        </div>
+        <div class="relative">
+            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 opacity-30 text-xs"></i>
+            <input type="text" id="inputMain" autocomplete="off" placeholder="Cari Anggota / ID..." class="w-full pl-10 pr-4 py-3 rounded-xl outline-none text-xs font-bold">
+            <div id="listMain" class="autocomplete-list hidden"></div>
+        </div>
+    </div>
+
+    <div id="summary-detail" class="glass p-5 border-t-4 border-blue-600 animate-in slide-in-from-top-4 duration-300">
+        <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 bg-blue-600/10 text-blue-600 rounded-xl flex items-center justify-center text-sm">
+                    <i class="fas fa-id-card"></i>
+                </div>
+                <div>
+                    <h4 id="displayNis" class="main-id-text"></h4>
+                    <p id="displayNama" class="text-xs font-bold leading-none"></p>
+                </div>
+            </div>
+            <button onclick="resetKeAwal()" class="text-red-500 opacity-50 hover:opacity-100"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="space-y-3">
+            <div class="relative">
+                <input type="text" id="inputBuku" autocomplete="off" placeholder="Cari Judul Buku..." class="w-full p-3 rounded-xl outline-none text-xs font-bold">
+                <div id="listBuku" class="autocomplete-list hidden"></div>
+            </div>
+            <div id="bukuTerpilihBox" class="p-3 bg-blue-600/5 rounded-xl border border-blue-600/10 hidden">
+                <p id="resJudul" class="font-bold text-[11px] leading-tight"></p>
+                <p id="resKode" class="text-[9px] font-black opacity-40 uppercase"></p>
+            </div>
+            <button id="btnProses" class="w-full py-3 btn-primary rounded-xl disabled:opacity-30" disabled onclick="handleSimpan()">Simpan</button>
+        </div>
+    </div>
+
+    <div id="success-card" class="glass p-4 border-l-4 border-green-500 animate-in zoom-in duration-300">
+        <div class="flex items-center gap-3 mb-4">
+            <div id="iconStatus" class="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg"></div>
+            <div class="flex-1 overflow-hidden">
+                <h3 id="statusTitle" class="text-xs font-black truncate"></h3>
+                <p id="finalNama" class="text-[10px] font-bold opacity-60 truncate"></p>
+            </div>
+            <button onclick="resetKeAwal()" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/10"><i class="fas fa-times text-xs"></i></button>
         </div>
 
-        <div class="bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-xl mb-6 space-y-2">
-            <div class="text-center border-b border-slate-200 dark:border-slate-800 pb-2">
-                <p id="finalNama" class="font-extrabold text-sm"></p>
-                <p class="text-[8px] opacity-40 uppercase font-bold">Peminjam</p>
+        <div class="bg-slate-50 dark:bg-white/5 p-3 rounded-xl mb-4">
+            <div class="mb-2">
+                <p id="finalBuku" class="font-bold text-blue-500 text-[11px] leading-tight"></p>
+                <p id="finalKode" class="text-[9px] font-black opacity-30 uppercase"></p>
             </div>
-            <div class="text-center pt-1">
-                <p id="finalBuku" class="font-bold text-blue-500 text-xs leading-snug"></p>
-                <p id="finalKode" class="text-[9px] opacity-30 font-mono"></p>
-            </div>
-            <div class="flex justify-between items-center pt-2">
-                <div class="text-left cursor-pointer hover:opacity-70 transition-all" onclick="openDateModal()">
-                    <label class="text-[7px] font-bold uppercase opacity-30">Tanggal Kembali</label>
-                    <p id="finalTgl" class="font-extrabold text-[10px] text-red-500 flex items-center gap-1"></p>
+            <div class="flex justify-between items-end border-t border-slate-200 dark:border-white/10 pt-2">
+                <div class="cursor-pointer" onclick="openDateModal()">
+                    <span class="text-[8px] font-black uppercase opacity-40 block">Tempo</span>
+                    <p id="finalTgl" class="font-bold text-[10px] text-red-500 flex items-center gap-1">
+                        <span></span> <i class="fas fa-pen text-[7px]"></i>
+                    </p>
                 </div>
                 <div class="text-right">
-                    <label class="text-[7px] font-bold uppercase opacity-30">Denda</label>
-                    <p id="finalDenda" class="font-extrabold text-[10px] text-orange-500"></p>
+                    <span class="text-[8px] font-black uppercase opacity-40 block">Denda</span>
+                    <p id="finalDenda" class="font-bold text-[10px] text-orange-500"></p>
                 </div>
             </div>
         </div>
 
         <div class="grid grid-cols-2 gap-2">
-            <button onclick="resetKeAwal()" class="col-span-2 py-3 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl font-extrabold text-[10px] flex items-center justify-center gap-2">
-                <span class="kbd-badge">2</span> BARU
+            <button id="btnPerpanjang" class="py-2.5 bg-blue-500/10 text-blue-600 rounded-lg font-bold text-[9px] flex items-center justify-center gap-1">
+                <span class="kbd-badge !bg-blue-600">1</span> PERPANJANG
             </button>
-            <button id="btnPerpanjang" class="py-2.5 border border-blue-500/30 text-blue-500 rounded-xl font-extrabold text-[9px] flex items-center justify-center gap-2">
-                <span class="kbd-badge text-blue-500">1</span> PERPANJANG
+            <button id="btnKembali" class="py-2.5 bg-red-500/10 text-red-600 rounded-lg font-bold text-[9px] flex items-center justify-center gap-1">
+                <span class="kbd-badge !bg-red-600">3</span> KEMBALI
             </button>
-            <button id="btnKembali" class="py-2.5 border border-red-500/30 text-red-500 rounded-xl font-extrabold text-[9px] flex items-center justify-center gap-2">
-                <span class="kbd-badge text-red-500">3</span> KEMBALI
+            <button onclick="resetKeAwal()" class="col-span-2 py-2.5 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-lg font-bold text-[9px] flex items-center justify-center gap-2">
+                <span class="kbd-badge !bg-slate-500">2</span> SELESAI / BARU
             </button>
         </div>
     </div>
@@ -178,17 +275,24 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore(), rtdb = firebase.database();
 
+    rtdb.ref('settings/dark_mode').on('value', snap => {
+        document.body.classList.toggle('dark-theme', snap.val() === true);
+    });
+
     let dataAnggota = [], allFlatData = [], dataPinjaman = [], selectedAnggota = null, selectedBuku = null, currentLoanDocId = null, currentFocus = -1, currentLoadedDate = null;
 
-    rtdb.ref('settings/dark_mode').on('value', snap => document.body.classList.toggle('dark-theme', snap.val() === true));
     db.collection("keanggotaan_v2").onSnapshot(s => dataAnggota = s.docs.map(d => ({id: d.id, ...d.data()})));
     db.collection("peminjaman_v2").where("status", "==", "DIPINJAM").onSnapshot(s => dataPinjaman = s.docs.map(d => ({id: d.id, ...d.data()})));
-    rtdb.ref('data_flat').once('value', s => { const d = s.val(); allFlatData = d ? Object.keys(d).map(k => ({ id: k, ...d[k] })) : []; });
+    
+    rtdb.ref('data_flat').on('value', s => { 
+        const d = s.val(); 
+        allFlatData = d ? Object.keys(d).map(k => ({ id: k, ...d[k] })) : []; 
+    });
 
     window.addEventListener('DOMContentLoaded', () => document.getElementById("inputMain").focus());
     window.addEventListener('keydown', (e) => {
         if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
-        if (document.getElementById('success-card').offsetParent !== null) {
+        if (document.getElementById('success-card').style.display === 'block') {
             if (e.key === '1') document.getElementById('btnPerpanjang').click();
             if (e.key === '2') resetKeAwal();
             if (e.key === '3') document.getElementById('btnKembali').click();
@@ -196,7 +300,8 @@
     });
 
     function showToast(msg) {
-        const t = document.createElement('div'); t.className = 'toast-msg'; t.textContent = msg;
+        const t = document.createElement('div'); t.className = 'toast-msg animate-in slide-in-from-top duration-300'; t.textContent = msg;
+        document.getElementById('toast-container').innerHTML = '';
         document.getElementById('toast-container').appendChild(t);
         setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2500);
     }
@@ -204,8 +309,15 @@
     function openModal(text, onConfirm, triggerBtnId) {
         document.getElementById('modal-text').textContent = text;
         const cb = document.getElementById('modal-confirm-btn');
-        cb.disabled = false; document.getElementById('modal-confirm').style.display = 'flex'; cb.focus();
-        cb.onclick = async () => { cb.disabled = true; if(triggerBtnId) document.getElementById(triggerBtnId).disabled = true; await onConfirm(); closeModal(); };
+        cb.disabled = false; 
+        document.getElementById('modal-confirm').style.display = 'flex'; 
+        cb.focus();
+        cb.onclick = async () => { 
+            cb.disabled = true; 
+            if(triggerBtnId) document.getElementById(triggerBtnId).disabled = true; 
+            await onConfirm(); 
+            closeModal(); 
+        };
     }
     function closeModal() { document.getElementById('modal-confirm').style.display = 'none'; }
 
@@ -228,35 +340,36 @@
             await db.collection("peminjaman_v2").doc(currentLoanDocId).update({
                 tgl_kembali: firebase.firestore.Timestamp.fromDate(dateObj)
             });
-            showToast("Tanggal Diubah");
+            showToast("Berhasil");
             currentLoadedDate = dateObj;
             renderSuccessData(dateObj);
             closeDateModal();
-        } catch(e) { showToast("Gagal!"); }
-        btn.disabled = false; btn.textContent = "Simpan Tanggal";
+        } catch(e) { showToast("Gagal"); }
+        btn.disabled = false; btn.textContent = "Simpan";
     }
 
     const inM = document.getElementById("inputMain"), lsM = document.getElementById("listMain");
     inM.addEventListener('input', () => {
         const q = inM.value.toLowerCase(); lsM.innerHTML = ''; currentFocus = -1;
         if(q.length < 1) return lsM.classList.add('hidden');
+        
         const mA = dataAnggota.filter(a => (a.keanggotaan||"").toLowerCase().includes(q) || (a.id||"").toLowerCase().includes(q) || (a.kamarSantri||"").toLowerCase().includes(q)).slice(0, 5);
         const mP = dataPinjaman.filter(p => (p.judul_buku||"").toLowerCase().includes(q) || (p.kode_ekslempar||"").toLowerCase().includes(q)).slice(0, 5);
         
         if(mA.length) {
-            const h = document.createElement('div'); h.className = 'px-4 py-2 text-[9px] font-bold opacity-30 uppercase bg-slate-50 dark:bg-slate-800'; h.textContent = 'Anggota'; lsM.appendChild(h);
+            const h = document.createElement('div'); h.className = 'autocomplete-header'; h.textContent = 'Anggota'; lsM.appendChild(h);
             mA.forEach(a => {
                 const d = document.createElement('div'); d.className = 'autocomplete-item';
-                d.innerHTML = `<b>${a.keanggotaan}</b> <span class='opacity-40 font-mono'>(${a.kamarSantri||'-'})</span>`;
+                d.innerHTML = `<i class="fas fa-id-card opacity-30 text-blue-600"></i> <div class="flex-1"><b class="main-id-text">${a.id}</b><br><small class="font-bold text-[11px] block">${a.keanggotaan}</small></div>`;
                 d.onclick = () => { selectedAnggota = a; checkActiveLoan(a); }; lsM.appendChild(d);
             });
         }
         if(mP.length) {
-            const h = document.createElement('div'); h.className = 'px-4 py-2 text-[9px] font-bold opacity-30 uppercase bg-slate-50 dark:bg-slate-800'; h.textContent = 'Pinjaman Aktif'; lsM.appendChild(h);
+            const h = document.createElement('div'); h.className = 'autocomplete-header'; h.textContent = 'Pinjaman'; lsM.appendChild(h);
             mP.forEach(p => {
-                const d = document.createElement('div'); d.className = 'autocomplete-item border-l-4 border-blue-600';
-                d.innerHTML = `<b class='text-blue-600'>${p.judul_buku}</b><br><small class='opacity-50 font-bold'>${p.nama_anggota}</small>`;
-                d.onclick = () => { currentLoanDocId = p.id; showSuccessCard(p.nama_anggota, p.judul_buku, p.kode_ekslempar, p.tgl_kembali.toDate(), true); lsM.classList.add('hidden'); };
+                const d = document.createElement('div'); d.className = 'autocomplete-item';
+                d.innerHTML = `<i class="fas fa-book-reader text-orange-500"></i> <div class="flex-1"><b class="main-id-text">${p.anggota_id}</b><br><small class='font-bold block text-[11px]'>${p.nama_anggota}</small></div>`;
+                d.onclick = () => { currentLoanDocId = p.id; showSuccessCard(p.nama_anggota, p.judul_buku, p.kode_ekslempar, p.tgl_kembali.toDate(), true, p.anggota_id); lsM.classList.add('hidden'); };
                 lsM.appendChild(d);
             });
         }
@@ -266,19 +379,24 @@
     async function checkActiveLoan(a) {
         lsM.classList.add('hidden'); inM.value = a.keanggotaan;
         const s = await db.collection("peminjaman_v2").where("anggota_id", "==", a.id).where("status", "==", "DIPINJAM").limit(1).get();
-        if(!s.empty) { currentLoanDocId = s.docs[0].id; showSuccessCard(a.keanggotaan, s.docs[0].data().judul_buku, s.docs[0].data().kode_ekslempar, s.docs[0].data().tgl_kembali.toDate(), true); }
+        if(!s.empty) { currentLoanDocId = s.docs[0].id; showSuccessCard(a.keanggotaan, s.docs[0].data().judul_buku, s.docs[0].data().kode_ekslempar, s.docs[0].data().tgl_kembali.toDate(), true, a.id); }
         else tampilkanDetail();
     }
 
     const inB = document.getElementById("inputBuku"), lsB = document.getElementById("listBuku");
     inB.addEventListener('input', () => {
         const q = inB.value.toLowerCase(); lsB.innerHTML = ''; if(q.length < 1) return lsB.classList.add('hidden');
-        const m = allFlatData.filter(i => (i.judul||"").toLowerCase().includes(q) || (i.kode||"").toLowerCase().includes(q)).slice(0, 5);
-        m.forEach(i => {
-            const d = document.createElement('div'); d.className = 'autocomplete-item';
-            let c = (i.kode?i.kode.split(',')[0]:"-").trim(); d.innerHTML = `<b>${c}</b><br><small class='opacity-50'>${i.judul}</small>`;
-            d.onclick = () => { selectedBuku = { kode: c, judul: i.judul }; inB.value = c; lsB.classList.add('hidden'); tampilkanBuku(); }; lsB.appendChild(d);
-        });
+        const m = allFlatData.filter(i => (i.judul||"").toLowerCase().includes(q) || (i.kode||"").toLowerCase().includes(q)).slice(0, 10);
+        
+        if(m.length) {
+            const h = document.createElement('div'); h.className = 'autocomplete-header'; h.textContent = 'Buku'; lsB.appendChild(h);
+            m.forEach(i => {
+                const d = document.createElement('div'); d.className = 'autocomplete-item';
+                let c = (i.kode || "-").trim(); 
+                d.innerHTML = `<i class="fas fa-barcode opacity-30 text-emerald-500"></i> <div class="flex-1"><b class="main-id-text !text-emerald-500">${c}</b><br><small class='font-bold text-[11px] block'>${i.judul}</small></div>`;
+                d.onclick = () => { selectedBuku = { kode: c, judul: i.judul }; inB.value = c; lsB.classList.add('hidden'); tampilkanBuku(); }; lsB.appendChild(d);
+            });
+        }
         lsB.classList.toggle('hidden', m.length === 0);
     });
 
@@ -300,9 +418,9 @@
     setupK(inM, "listMain"); setupK(inB, "listBuku", () => { if(!document.getElementById("btnProses").disabled) handleSimpan(); });
 
     function tampilkanDetail() {
-        document.getElementById("displayNama").textContent = selectedAnggota.keanggotaan;
+        document.getElementById("main-input-area").style.display = 'none';
         document.getElementById("displayNis").textContent = selectedAnggota.id;
-        document.getElementById("displayKamar").textContent = selectedAnggota.kamarSantri || '-';
+        document.getElementById("displayNama").textContent = selectedAnggota.keanggotaan;
         document.getElementById("summary-detail").style.display = 'block'; setTimeout(() => inB.focus(), 100);
     }
     function tampilkanBuku() {
@@ -321,22 +439,23 @@
         const now = new Date(); now.setHours(0,0,0,0);
         const tempo = new Date(t); tempo.setHours(0,0,0,0); 
         const diff = Math.ceil((now - tempo) / (1000 * 60 * 60 * 24));
-        document.getElementById("finalTgl").innerHTML = `${t.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} <i class="fas fa-edit opacity-30 text-[8px]"></i>`;
+        document.getElementById("finalTgl").querySelector('span').textContent = t.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
         document.getElementById("finalDenda").textContent = diff > 0 ? "Rp " + (diff * 1000).toLocaleString() : "Rp 0";
     }
 
-    function showSuccessCard(n, j, k, t, e = false) {
+    function showSuccessCard(n, j, k, t, e = false, idStr = "") {
         currentLoadedDate = t;
         document.getElementById("main-input-area").style.display = 'none'; document.getElementById("summary-detail").style.display = 'none';
         document.getElementById("success-card").style.display = 'block'; 
-        document.getElementById("statusTitle").textContent = e ? "Info Pinjaman" : "Berhasil";
-        document.getElementById("iconStatus").className = `w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-2 ${e ? 'bg-blue-600 text-white' : 'bg-green-500 text-white'}`;
-        document.getElementById("iconStatus").innerHTML = `<i class="fas ${e ? 'fa-info' : 'fa-check'} text-xl"></i>`;
-        document.getElementById("finalNama").textContent = n; document.getElementById("finalBuku").textContent = j;
+        document.getElementById("statusTitle").textContent = e ? "Pinjaman Aktif" : "Selesai";
+        document.getElementById("iconStatus").className = `w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg ${e ? 'bg-blue-600' : 'bg-green-500'}`;
+        document.getElementById("iconStatus").innerHTML = `<i class="fas ${e ? 'fa-info' : 'fa-check'} text-sm"></i>`;
+        document.getElementById("finalNama").textContent = n; 
+        document.getElementById("finalBuku").textContent = j;
         document.getElementById("finalKode").textContent = k; 
         renderSuccessData(t);
         document.getElementById("btnPerpanjang").onclick = () => openModal("Perpanjang 4 hari?", handlePerpanjang, "btnPerpanjang");
-        document.getElementById("btnKembali").onclick = () => openModal("Kembalikan buku?", handleKembali, "btnKembali");
+        document.getElementById("btnKembali").onclick = () => openModal("Sudah kembali?", handleKembali, "btnKembali");
     }
 
     async function handleSimpan() {
@@ -344,18 +463,18 @@
         try {
             const tk = new Date(); tk.setDate(tk.getDate() + 4);
             const doc = await db.collection("peminjaman_v2").add({ anggota_id: selectedAnggota.id, nama_anggota: selectedAnggota.keanggotaan, kode_ekslempar: selectedBuku.kode, judul_buku: selectedBuku.judul, tgl_pinjam: firebase.firestore.Timestamp.fromDate(new Date()), tgl_kembali: firebase.firestore.Timestamp.fromDate(tk), status: "DIPINJAM" });
-            currentLoanDocId = doc.id; showToast("Berhasil!"); showSuccessCard(selectedAnggota.keanggotaan, selectedBuku.judul, selectedBuku.kode, tk);
-        } catch(e) { b.disabled = false; showToast("Gagal!"); }
+            currentLoanDocId = doc.id; showToast("Berhasil"); showSuccessCard(selectedAnggota.keanggotaan, selectedBuku.judul, selectedBuku.kode, tk, false, selectedAnggota.id);
+        } catch(e) { b.disabled = false; showToast("Gagal"); }
     }
     async function handlePerpanjang() {
         const tb = new Date(); tb.setDate(tb.getDate() + 4);
         try { 
             await db.collection("peminjaman_v2").doc(currentLoanDocId).update({ tgl_kembali: firebase.firestore.Timestamp.fromDate(tb) }); 
-            showToast("Diperpanjang!"); currentLoadedDate = tb; renderSuccessData(tb);
+            showToast("Berhasil"); currentLoadedDate = tb; renderSuccessData(tb);
             document.getElementById("btnPerpanjang").disabled = false; 
-        } catch(e) { showToast("Gagal!"); }
+        } catch(e) { showToast("Gagal"); }
     }
-    async function handleKembali() { try { await db.collection("peminjaman_v2").doc(currentLoanDocId).update({ status: "KEMBALI", tgl_dikembalikan: firebase.firestore.FieldValue.serverTimestamp() }); showToast("Kembali!"); setTimeout(() => resetKeAwal(), 500); } catch(e) { showToast("Gagal!"); } }
+    async function handleKembali() { try { await db.collection("peminjaman_v2").doc(currentLoanDocId).update({ status: "KEMBALI", tgl_dikembalikan: firebase.firestore.FieldValue.serverTimestamp() }); showToast("Berhasil"); setTimeout(() => resetKeAwal(), 500); } catch(e) { showToast("Gagal"); } }
 </script>
 </body>
 </html>
