@@ -113,22 +113,14 @@
             overflow: hidden; 
             position: relative; 
             display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         iframe { 
             width: 100%; 
             height: 100%; 
             border: none; 
-            display: none; 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            z-index: 10;
             background: var(--bg-box);
         }
-        iframe.active { display: block; }
         
         .sidebar-footer {
             padding: 16px;
@@ -158,29 +150,29 @@
             <div class="brand-text">PERPUSTAKAAN<br><span>LUBANGSA</span></div>
         </div>
         <div id="dynamic-nav" class="nav-container">
-            <div class="nav-link" onclick="loadFrame('beranda', 'beranda.html', this)">
+            <div class="nav-link" id="nav-beranda" onclick="loadFrame('beranda.html', this)">
                 <i class="fas fa-home w-5 text-center"></i> Beranda
             </div>
             
             <div class="nav-divider"></div>
             
-            <div class="nav-link" onclick="loadFrame('sirkulasi', 'sirkulasi.html', this)">
+            <div class="nav-link" id="nav-sirkulasi" onclick="loadFrame('sirkulasi.html', this)">
                 <i class="fas fa-sync-alt w-5 text-center"></i> Sirkulasi
             </div>
 
             <div class="nav-label">Data Master</div>
-            <div class="nav-link" onclick="loadFrame('biblio', 'daftarbibliografi.html', this)">
+            <div class="nav-link" id="nav-biblio" onclick="loadFrame('daftarbibliografi.html', this)">
                 <i class="fas fa-book w-5 text-center"></i> Bibliografi
             </div>
-            <div class="nav-link" onclick="loadFrame('anggota', 'keanggotaan.html', this)">
+            <div class="nav-link" id="nav-anggota" onclick="loadFrame('keanggotaan.html', this)">
                 <i class="fas fa-users w-5 text-center"></i> Keanggotaan
             </div>
 
             <div class="nav-label">Layanan Cetak</div>
-            <div class="nav-link" onclick="loadFrame('label', 'label.html', this)">
+            <div class="nav-link" id="nav-label" onclick="loadFrame('label.html', this)">
                 <i class="fas fa-tag w-5 text-center"></i> Cetak Label
             </div>
-            <div class="nav-link" onclick="loadFrame('barcode', 'barcode.html', this)">
+            <div class="nav-link" id="nav-barcode" onclick="loadFrame('barcode.html', this)">
                 <i class="fas fa-barcode w-5 text-center"></i> Cetak Barcode
             </div>
         </div>
@@ -230,29 +222,24 @@
         window.location.replace('login.html'); 
     }
 
-    function loadFrame(id, src, el) {
+    function loadFrame(src, el) {
+        if (el.classList.contains('active')) return;
+
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
         el.classList.add('active');
 
         const container = document.getElementById('frame-container');
-        let f = document.getElementById(`ifr-${id}`);
         
-        document.querySelectorAll('iframe').forEach(ifr => ifr.classList.remove('active'));
+        container.innerHTML = '';
 
-        if(!f) {
-            f = document.createElement('iframe');
-            f.id = `ifr-${id}`;
-            f.src = src;
-            f.className = 'active';
-            container.appendChild(f);
-        } else {
-            f.classList.add('active');
-        }
+        const f = document.createElement('iframe');
+        f.src = src;
+        container.appendChild(f);
     }
 
     window.onload = () => {
-        const firstBtn = document.querySelector('.nav-link');
-        loadFrame('beranda', 'beranda.html', firstBtn);
+        const firstBtn = document.getElementById('nav-beranda');
+        loadFrame('beranda.html', firstBtn);
     };
 </script>
 </body>
