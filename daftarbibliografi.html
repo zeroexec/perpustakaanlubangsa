@@ -370,25 +370,15 @@
 
         function setupDarkModeSync() {
             const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
-            
             const applyTheme = (isDark) => {
                 if (isDark) document.documentElement.setAttribute('data-theme', 'dark');
                 else document.documentElement.removeAttribute('data-theme');
             };
-
             applyTheme(systemDark.matches);
-
-            systemDark.addEventListener('change', e => {
-                applyTheme(e.matches);
-            });
-
             rtdb.ref('settings/dark_mode').on('value', (snapshot) => {
                 const cloudPref = snapshot.val();
-                if (cloudPref !== null) {
-                    applyTheme(cloudPref);
-                } else {
-                    applyTheme(systemDark.matches);
-                }
+                if (cloudPref !== null) applyTheme(cloudPref);
+                else applyTheme(systemDark.matches);
             });
         }
 
@@ -412,29 +402,39 @@
         async function syncFlatDataToRTDB(biblioList) {
             const progressBar = document.getElementById('syncProgressBar');
             const flatRef = rtdb.ref('data_flat');
-            const rtdbSnap = await flatRef.get();
-            const rtdbData = rtdbSnap.exists() ? rtdbSnap.val() : {};
+            const newFlatData = {};
             let processed = 0;
             const total = biblioList.length;
             const now = Date.now();
             
-            for (const b of biblioList) {
-                const flatData = { 
-                    judul: b.judul || '', 
-                    penulis: b.penulis || '', 
-                    kode: Array.isArray(b.kode) ? b.kode.join(', ') : '',
-                    last_sync_timestamp: now
-                };
+            biblioList.forEach(b => {
+                const codes = Array.isArray(b.kode) ? b.kode : [];
                 
-                const existing = rtdbData[b.id];
-                if (!existing || existing.judul !== flatData.judul || existing.penulis !== flatData.penulis || existing.kode !== flatData.kode) {
-                    await flatRef.child(b.id).set(flatData);
+                if (codes.length === 0) {
+                    const key = `${b.id}_none`;
+                    newFlatData[key] = {
+                        judul: b.judul || '',
+                        penulis: b.penulis || '',
+                        kode: '',
+                        last_sync_timestamp: now
+                    };
+                } else {
+                    codes.forEach((kode, index) => {
+                        const key = `${b.id}_${index}`;
+                        newFlatData[key] = {
+                            judul: b.judul || '',
+                            penulis: b.penulis || '',
+                            kode: kode,
+                            last_sync_timestamp: now
+                        };
+                    });
                 }
                 processed++;
                 if(progressBar) progressBar.style.width = (processed / total * 100) + '%';
-            }
+            });
+            
+            await flatRef.set(newFlatData);
             if(progressBar) setTimeout(() => { progressBar.style.width = '0%'; }, 1000);
-            renderData();
         }
 
         function openEditModal(biblioId = null) {
@@ -686,13 +686,11 @@
             const original = document.getElementById('child_original_kode_ref').value;
             const errorEl = document.getElementById('duplicateError');
             const saveBtn = document.getElementById('childSaveBtn');
-            
             if (val === "" || val === original) {
                 errorEl.classList.add('hidden');
                 saveBtn.disabled = false;
                 return;
             }
-
             const isDuplicate = Array.from(ekslemparDataMap.keys()).includes(val);
             if (isDuplicate) {
                 errorEl.classList.remove('hidden');
@@ -760,18 +758,13 @@
         function initialize() {
             setupDarkModeSync();
             cleanupOrphanedEkslempar();
-
             document.getElementById('editBiblioForm').addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    if (document.activeElement.id === 'newTopikInput') {
-                        addTopik();
-                    } else if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
-                        saveBiblio();
-                    }
+                    if (document.activeElement.id === 'newTopikInput') addTopik();
+                    else if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') saveBiblio();
                 }
             });
-
             db.collection('ekslempar').onSnapshot(snap => {
                 ekslemparDataMap.clear();
                 snap.forEach(doc => {
