@@ -27,18 +27,34 @@
             --splash-bg: #ffffff;
         }
 
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-body: #000000;
+                --bg-card: #121212;
+                --text-main: #ffffff;
+                --text-sub: #a0a0a0;
+                --border-color: #2a2a2a;
+                --input-bg: #1a1a1a;
+                --input-text: #ffffff;
+                --modal-bg: #000000;
+                --splash-bg: #000000;
+                --color-primary-light: #001a33;
+                --color-primary-border: #003366;
+            }
+        }
+
         [data-theme="dark"] {
-            --bg-body: #0f172a;
-            --bg-card: #1e293b;
-            --text-main: #f1f5f9;
-            --text-sub: #94a3b8;
-            --border-color: #334155;
-            --input-bg: #334155;
-            --input-text: #f8fafc;
-            --modal-bg: #1e293b;
-            --splash-bg: #0f172a;
-            --color-primary-light: #1e3a8a;
-            --color-primary-border: #2563eb;
+            --bg-body: #000000;
+            --bg-card: #121212;
+            --text-main: #ffffff;
+            --text-sub: #a0a0a0;
+            --border-color: #2a2a2a;
+            --input-bg: #1a1a1a;
+            --input-text: #ffffff;
+            --modal-bg: #000000;
+            --splash-bg: #000000;
+            --color-primary-light: #001a33;
+            --color-primary-border: #003366;
         }
 
         body {
@@ -106,6 +122,7 @@
             left: 0;
             right: 0;
             background: var(--modal-bg);
+            border-top: 1px solid var(--border-color);
             border-top-left-radius: 1.5rem;
             border-top-right-radius: 1.5rem;
             transform: translateY(100%);
@@ -128,7 +145,7 @@
         .overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.85);
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s;
@@ -143,7 +160,7 @@
         #loadingOverlay {
             position: fixed;
             inset: 0;
-            background: rgba(15, 23, 42, 0.7);
+            background: rgba(0, 0, 0, 0.9);
             display: none;
             flex-direction: column;
             align-items: center;
@@ -182,7 +199,7 @@
         }
 
         .pagination-btn:disabled {
-            opacity: 0.3;
+            opacity: 0.2;
             cursor: not-allowed;
         }
 
@@ -219,7 +236,7 @@
                 <label class="block text-xs font-bold uppercase tracking-wider mb-1" style="color: var(--color-gradient-start)">Pencarian Cepat</label>
                 <input type="text" id="filterInput" placeholder="Cari judul, penulis atau kode..." class="w-full p-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
-            <div id="syncProgressBarContainer" class="mt-2 h-1 bg-blue-100 rounded-full overflow-hidden">
+            <div id="syncProgressBarContainer" class="mt-2 h-1 bg-blue-100 rounded-full overflow-hidden" style="background-color: rgba(255,255,255,0.1)">
                 <div id="syncProgressBar" class="h-full bg-blue-600 w-0 transition-all duration-300"></div>
             </div>
         </div>
@@ -352,9 +369,26 @@
         let isInitialDataLoaded = { ekslempar: false, biblio: false };
 
         function setupDarkModeSync() {
-            rtdb.ref('settings/dark_mode').on('value', (snapshot) => {
-                if (snapshot.val()) document.documentElement.setAttribute('data-theme', 'dark');
+            const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+            
+            const applyTheme = (isDark) => {
+                if (isDark) document.documentElement.setAttribute('data-theme', 'dark');
                 else document.documentElement.removeAttribute('data-theme');
+            };
+
+            applyTheme(systemDark.matches);
+
+            systemDark.addEventListener('change', e => {
+                applyTheme(e.matches);
+            });
+
+            rtdb.ref('settings/dark_mode').on('value', (snapshot) => {
+                const cloudPref = snapshot.val();
+                if (cloudPref !== null) {
+                    applyTheme(cloudPref);
+                } else {
+                    applyTheme(systemDark.matches);
+                }
             });
         }
 
@@ -645,6 +679,28 @@
         document.getElementById('editBiblioForm').onsubmit = (e) => {
             e.preventDefault();
             saveBiblio();
+        };
+
+        document.getElementById('child_edit_kode_ref').oninput = function() {
+            const val = this.value.trim();
+            const original = document.getElementById('child_original_kode_ref').value;
+            const errorEl = document.getElementById('duplicateError');
+            const saveBtn = document.getElementById('childSaveBtn');
+            
+            if (val === "" || val === original) {
+                errorEl.classList.add('hidden');
+                saveBtn.disabled = false;
+                return;
+            }
+
+            const isDuplicate = Array.from(ekslemparDataMap.keys()).includes(val);
+            if (isDuplicate) {
+                errorEl.classList.remove('hidden');
+                saveBtn.disabled = true;
+            } else {
+                errorEl.classList.add('hidden');
+                saveBtn.disabled = false;
+            }
         };
 
         document.getElementById('editChildForm').onsubmit = async (e) => {
