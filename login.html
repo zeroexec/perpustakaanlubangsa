@@ -23,25 +23,63 @@
             --text-main: #e8eaed;
             --border: #3c4043;
         }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg-body); color: var(--text-main); }
-        .brand-text { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; text-transform: uppercase; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            background: var(--bg-body); 
+            color: var(--text-main); 
+            transition: background 0.3s ease;
+        }
+        .login-card {
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border);
+        }
+        .brand-text { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; text-transform: uppercase; }
         .brand-text span { color: var(--primary); }
+        input {
+            background: transparent !important;
+            color: var(--text-main) !important;
+        }
+        input::placeholder {
+            color: #9ca3af;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center h-screen">
-<div id="login-screen" class="bg-[var(--bg-sidebar)] p-12 rounded-lg shadow-xl border border-[var(--border)] w-full max-w-sm text-center">
-    <div class="flex flex-col items-center mb-8">
-        <i class="fas fa-book-reader text-4xl mb-4" style="color:var(--primary)"></i>
-        <div class="brand-text text-xl">
+<div class="login-card p-10 rounded-xl shadow-2xl w-full max-w-md text-center">
+    <div class="flex flex-col items-center mb-10">
+        <i class="fas fa-book-reader text-5xl mb-4" style="color:var(--primary)"></i>
+        <div class="brand-text">
             PERPUSTAKAAN <span>LUBANGSA</span>
         </div>
+        <p class="text-sm text-gray-500 mt-2">Panel Administrasi Perpustakaan Digital</p>
     </div>
-    <div onkeydown="if(event.key === 'Enter') handleLogin()" class="space-y-4">
-        <input type="text" id="login-user" placeholder="Username" class="w-full p-3 rounded border bg-transparent border-[var(--border)] outline-none focus:border-blue-500">
-        <input type="password" id="login-pass" placeholder="Password" class="w-full p-3 rounded border bg-transparent border-[var(--border)] outline-none focus:border-blue-500">
-        <button onclick="handleLogin()" class="w-full py-3 bg-[#1a73e8] text-white font-bold rounded">MASUK</button>
-    </div>
-    <p id="login-err" class="text-red-500 text-xs mt-4"></p>
+
+    <form onsubmit="return false;" autocomplete="off" class="space-y-5">
+        <input type="text" style="display:none">
+        <input type="password" style="display:none">
+
+        <div class="relative text-left">
+            <label class="block text-xs font-bold mb-1 ml-1 opacity-70">USERNAME</label>
+            <div class="flex items-center border border-[var(--border)] rounded-lg px-3 py-2 focus-within:border-blue-500 transition-all">
+                <i class="fas fa-user text-gray-400 mr-3"></i>
+                <input type="text" id="login-user" name="user_field_rnd" placeholder="Masukkan username" class="w-full outline-none text-sm" autofocus autocomplete="one-time-code">
+            </div>
+        </div>
+        
+        <div class="relative text-left">
+            <label class="block text-xs font-bold mb-1 ml-1 opacity-70">PASSWORD</label>
+            <div class="flex items-center border border-[var(--border)] rounded-lg px-3 py-2 focus-within:border-blue-500 transition-all">
+                <i class="fas fa-lock text-gray-400 mr-3"></i>
+                <input type="password" id="login-pass" name="pass_field_rnd" placeholder="Masukkan password" class="w-full outline-none text-sm" autocomplete="new-password">
+            </div>
+        </div>
+
+        <button onclick="handleLogin()" class="w-full py-3 bg-[#1a73e8] hover:bg-blue-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-blue-500/30">
+            MASUK KE DASHBOARD
+        </button>
+    </form>
+
+    <p id="login-err" class="text-red-500 text-xs mt-6 font-medium h-4"></p>
 </div>
 
 <script>
@@ -52,11 +90,15 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let credentials = {};
+
+    let credentials = { user: 'admin', pass: 'admin123' };
 
     db.ref('/').on('value', snap => {
         const data = snap.val() || {};
-        credentials = data.admin_credentials || { user: 'admin', pass: 'admin123' };
+        if (data.admin_credentials) {
+            credentials = data.admin_credentials;
+        }
+        
         if (data.settings?.dark_mode) {
             document.body.classList.add('dark-theme');
         } else {
@@ -64,18 +106,27 @@
         }
     });
 
+    document.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter') handleLogin();
+    });
+
     function handleLogin() {
-        const u = document.getElementById('login-user').value, p = document.getElementById('login-pass').value;
+        const u = document.getElementById('login-user').value;
+        const p = document.getElementById('login-pass').value;
+        const err = document.getElementById('login-err');
+
         if (u === credentials.user && p === credentials.pass) {
             sessionStorage.setItem('isAdmin', 'true');
-            window.location.href = 'index.html';
+            window.location.replace('admin.html');
         } else {
-            document.getElementById('login-err').innerText = "Kredensial salah!";
+            err.innerText = "Username atau password tidak valid!";
+            setTimeout(() => { err.innerText = ""; }, 3000);
+            document.getElementById('login-user').focus();
         }
     }
 
     if (sessionStorage.getItem('isAdmin') === 'true') {
-        window.location.href = 'index.html';
+        window.location.replace('admin.html');
     }
 </script>
 </body>
