@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PENDAFTARAN ANGGOTA</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root { 
+            --bg: #f8fafc; 
+            --card: #ffffff; 
+            --primary: #2563eb; 
+            --primary-hover: #1d4ed8;
+            --text: #0f172a; 
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --input-bg: #f1f5f9;
+            --shadow: rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark-theme { 
+            --bg: #020617; 
+            --card: #0f172a; 
+            --primary: #3b82f6; 
+            --primary-hover: #60a5fa;
+            --text: #f8fafc; 
+            --text-muted: #94a3b8;
+            --border: #1e293b;
+            --input-bg: #1e293b;
+            --shadow: rgba(0, 0, 0, 0.4);
+        }
+
+        body { 
+            background-color: var(--bg); 
+            color: var(--text); 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass { 
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            box-shadow: 0 25px 50px -12px var(--shadow); 
+            transition: all 0.4s ease;
+        }
+        
+        input, select { 
+            background: var(--input-bg) !important; 
+            color: var(--text) !important; 
+            border: 1.5px solid transparent !important; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            appearance: none;
+        }
+
+        .uppercase-input {
+            text-transform: uppercase;
+        }
+
+        input::placeholder {
+            text-transform: none;
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        input:focus, select:focus { 
+            background: var(--card) !important;
+            border-color: var(--primary) !important; 
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important; 
+            outline: none;
+        }
+        
+        input.invalid { 
+            border-color: #ef4444 !important; 
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1) !important; 
+        }
+
+        .btn-primary {
+            background: var(--primary); 
+            color: white; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.25);
+        }
+
+        .btn-primary:hover:not(:disabled) { 
+            background: var(--primary-hover);
+            transform: translateY(-2px); 
+            box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.3); 
+        }
+
+        .btn-primary:disabled { 
+            opacity: 0.5; 
+            cursor: not-allowed; 
+        }
+
+        .back-link {
+            transition: all 0.3s;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+        }
+
+        .text-muted { color: var(--text-muted); }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-slide-up {
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+<div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center w-full max-w-xs"></div>
+
+<div class="glass w-full max-w-md p-8 md:p-10 rounded-[2.5rem] animate-slide-up">
+    <div class="flex justify-between items-center mb-10">
+        <a href="form.html" class="back-link w-11 h-11 flex items-center justify-center rounded-2xl text-muted">
+            <i class="fas fa-arrow-left text-sm"></i>
+        </a>
+        <div class="flex flex-col items-end">
+            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">Portal</span>
+            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Mandiri</span>
+        </div>
+    </div>
+
+    <div class="text-left mb-8">
+        <h1 class="text-3xl font-extrabold tracking-tight mb-2">Pendaftaran</h1>
+        <p class="text-xs text-muted font-medium">Lengkapi data keanggotaan Anda untuk sinkronisasi sistem.</p>
+    </div>
+
+    <form id="publicForm" class="space-y-5">
+        <div class="space-y-1.5">
+            <div class="flex justify-between items-center px-1">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-muted">ID Anggota / NIS</label>
+                <span id="idError" class="text-[9px] text-red-500 font-black hidden">SUDAH TERDAFTAR</span>
+            </div>
+            <input type="text" id="memberId" required placeholder="Contoh: 2024001" class="w-full p-4 rounded-2xl text-sm font-bold uppercase-input">
+        </div>
+
+        <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-wider text-muted px-1">Nama Lengkap</label>
+            <input type="text" id="memberName" required placeholder="Nama lengkap sesuai identitas" class="w-full p-4 rounded-2xl text-sm font-bold">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-muted px-1">Jenjang</label>
+                <div class="relative">
+                    <select id="memberJenjang" required class="w-full p-4 rounded-2xl text-sm font-bold cursor-pointer">
+                        <option value="SLTP">SLTP</option>
+                        <option value="SLTA">SLTA</option>
+                        <option value="PT">PT</option>
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-muted pointer-events-none"></i>
+                </div>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-muted px-1">Organisasi</label>
+                <input type="text" id="memberOrg" placeholder="Contoh: IKSTIDA" class="w-full p-4 rounded-2xl text-sm font-bold uppercase-input">
+            </div>
+        </div>
+
+        <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-wider text-muted px-1">Kamar / Domisili</label>
+            <input type="text" id="memberRoom" required placeholder="Contoh: BLOK A / 05" class="w-full p-4 rounded-2xl text-sm font-bold uppercase-input">
+        </div>
+
+        <button type="submit" id="btnSubmit" class="w-full py-5 btn-primary rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] mt-4">
+            Kirim Data Sekarang
+        </button>
+    </form>
+    
+    <div class="mt-10 pt-6 border-t border-dashed border-slate-200 dark:border-slate-800 text-center">
+        <p class="text-[9px] text-muted font-bold uppercase tracking-widest opacity-60">
+            Terhubung dengan Database Cloud &bull; 2025
+        </p>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ", 
+        databaseURL: "https://databuku-6385c-default-rtdb.firebaseio.com", 
+        projectId: "databuku-6385c" 
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(), rtdb = firebase.database();
+
+    rtdb.ref('settings/dark_mode').on('value', snap => {
+        if(snap.val() === true) {
+            document.body.classList.add('dark-theme');
+        } else {
+            document.body.classList.remove('dark-theme');
+        }
+    });
+
+    document.querySelectorAll('.uppercase-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const start = e.target.selectionStart;
+            e.target.value = e.target.value.toUpperCase();
+            e.target.setSelectionRange(start, start);
+        });
+    });
+
+    const mId = document.getElementById('memberId');
+    const idErr = document.getElementById('idError');
+    const bSub = document.getElementById('btnSubmit');
+
+    mId.addEventListener('input', async () => {
+        const val = mId.value.trim().toUpperCase();
+        if(val === "") {
+            mId.classList.remove('invalid');
+            idErr.classList.add('hidden');
+            bSub.disabled = false;
+            return;
+        }
+        
+        const doc = await db.collection("keanggotaan_v2").doc(val).get();
+        if(doc.exists) {
+            mId.classList.add('invalid');
+            idErr.classList.remove('hidden');
+            bSub.disabled = true;
+        } else {
+            mId.classList.remove('invalid');
+            idErr.classList.add('hidden');
+            bSub.disabled = false;
+        }
+    });
+
+    function showToast(msg) {
+        const t = document.createElement('div');
+        t.className = 'bg-slate-900 dark:bg-blue-600 text-white px-6 py-4 rounded-2xl text-[10px] font-black mb-3 shadow-2xl animate-in slide-in-from-top-4 duration-300 uppercase tracking-[0.15em] border border-white/10 text-center';
+        t.textContent = msg;
+        const container = document.getElementById('toast-container');
+        container.appendChild(t);
+        setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(-20px)'; setTimeout(() => t.remove(), 400); }, 3000);
+    }
+
+    document.getElementById('publicForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const id = mId.value.trim().toUpperCase();
+        const name = document.getElementById('memberName').value.trim();
+        const jenjang = document.getElementById('memberJenjang').value;
+        const org = document.getElementById('memberOrg').value.trim().toUpperCase();
+        const room = document.getElementById('memberRoom').value.trim().toUpperCase();
+
+        bSub.disabled = true;
+        bSub.textContent = "SEDANG MENGIRIM...";
+
+        try {
+            const docCheck = await db.collection("keanggotaan_v2").doc(id).get();
+            if(docCheck.exists) {
+                showToast("ID SUDAH TERDAFTAR!");
+                bSub.disabled = false;
+                bSub.textContent = "KIRIM DATA SEKARANG";
+                return;
+            }
+            
+            await db.collection("keanggotaan_v2").doc(id).set({
+                keanggotaan: name,
+                jenjang: jenjang,
+                organisasi: org,
+                kamarSantri: room
+            });
+
+            showToast("DATA BERHASIL DISIMPAN!");
+            document.getElementById('publicForm').reset();
+            
+        } catch(err) { 
+            showToast("SISTEM SEDANG SIBUK"); 
+        } finally {
+            bSub.disabled = false;
+            bSub.textContent = "KIRIM DATA SEKARANG";
+        }
+    });
+</script>
+</body>
+</html>
