@@ -12,99 +12,67 @@
     
     <style>
         :root { 
-            --bg: #f8fafc; 
-            --text-main: #0f172a; 
-            --card-bg: #ffffff;
-            --border-color: #e2e8f0;
-            --input-bg: #f8fafc;
+            --bg-body: #f8f9fa; 
+            --text-main: #3c4043; 
+            --text-sub: #5f6368;
+            --bg-card: #ffffff;
+            --border-color: #dadce0;
+            --input-bg: #ffffff;
+            --primary: #1a73e8;
+            --primary-light: #e8f0fe;
         }
 
         body.dark-theme { 
-            --bg: #020617; 
-            --text-main: #f1f5f9; 
-            --card-bg: #0f172a;
-            --border-color: #1e293b;
-            --input-bg: #1e293b;
+            --bg-body: #202124; 
+            --text-main: #e8eaed; 
+            --text-sub: #bdc1c6;
+            --bg-card: #28292c;
+            --border-color: #3c4043;
+            --input-bg: #202124;
+            --primary-light: #3c4043;
         }
 
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            transition: background-color 0.3s, color 0.3s;
+        body { 
+            background-color: var(--bg-body); 
+            color: var(--text-main); 
+            transition: all 0.3s ease;
         }
 
-        .custom-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
+        .card { 
+            background-color: var(--bg-card); 
+            border: 1px solid var(--border-color); 
         }
 
-        .custom-input {
-            background-color: var(--input-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
+        input {
+            background-color: var(--input-bg) !important;
+            color: var(--text-main) !important;
+            border-color: var(--border-color) !important;
         }
 
-        @media print {
-            .no-print { display: none !important; }
-            body { background: white !important; color: black !important; }
-            #printArea { 
-                display: grid !important; 
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-                padding: 10px;
-            }
-            .label-barcode { 
-                page-break-inside: avoid; 
-                border: 0.5pt solid #000 !important;
-                background: white !important;
-                color: black !important;
-            }
-        }
-
-        .label-barcode {
-            width: 100%;
-            height: 3.5cm;
-            border: 1px solid #000;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            font-family: Arial, sans-serif;
-            margin: 5px;
-            overflow: hidden;
-        }
-
-        .label-header {
-            background-color: #e5e7eb;
-            border-bottom: 1px solid #000;
-            color: black;
-            font-size: 11px;
-            text-align: center;
-            font-weight: bold;
-            padding: 4px 2px;
-            text-transform: uppercase;
-        }
-
-        .label-content {
-            flex-grow: 1;
+        .label-preview {
+            width: 4cm;
+            height: 2.5cm;
+            border: 1px solid #ccc;
+            padding: 2mm;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 5px;
+            background: white;
+            color: black;
+            overflow: hidden;
         }
 
-        .label-title-mini {
-            font-size: 9px;
-            font-weight: normal;
-            color: black;
-            line-height: 1.2;
+        .label-preview .title {
+            font-size: 7pt;
+            font-weight: bold;
             text-align: center;
+            line-height: 1.1;
+            margin-bottom: 1mm;
             display: -webkit-box;
-            -webkit-line-clamp: 1;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
-            width: 90%;
-            margin-bottom: 4px;
         }
 
         .barcode-svg {
@@ -112,51 +80,110 @@
             height: auto;
         }
 
-        .barcode-text {
-            font-size: 11px;
-            font-weight: bold;
-            margin-top: 2px;
-            letter-spacing: 1px;
-            color: black;
+        @media print {
+            body * { visibility: hidden; background: white !important; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                display: block !important;
+            }
+            .no-print { display: none !important; }
         }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
-        body.dark-theme .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #334155; }
+        .ekslempar-item {
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+
+        .ekslempar-item.selected {
+            background-color: var(--primary-light);
+            border-left-color: var(--primary);
+        }
+
+        .pagination-btn {
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 13px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            transition: all 0.2s;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
     </style>
 </head>
-<body class="p-6">
+<body class="p-4 md:p-8 custom-scrollbar">
 
-    <div class="max-w-6xl mx-auto custom-card p-6 rounded-2xl shadow-xl no-print">
-        <div class="flex justify-between items-center mb-8 border-b pb-5" style="border-color: var(--border-color)">
+    <div class="max-w-6xl mx-auto no-print">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
-                <h1 class="text-2xl font-black tracking-tight">BARCODE EKSLEMPAR</h1>
-                <p class="text-xs opacity-60 font-bold uppercase tracking-widest mt-1">Perpustakaan Lubangsa | Tinggi 3.5cm</p>
+                <h1 class="text-3xl font-bold tracking-tight" style="color: var(--primary)">Cetak Barcode</h1>
+                <p style="color: var(--text-sub)" class="text-sm">Pilih ekslempar buku untuk dicetak ke label barcode.</p>
             </div>
-            <div>
-                <button id="printBtn" disabled class="bg-slate-800 text-white dark:bg-blue-600 font-bold py-2.5 px-8 rounded-xl shadow-lg disabled:opacity-30 transition text-sm">
-                    Cetak (<span id="selectedCountDisplay">0</span>) Barcode
+            <div class="flex gap-2">
+                <button onclick="window.print()" id="btnPrint" disabled class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    Cetak Label (<span id="selectedCountBtn">0</span>)
                 </button>
             </div>
         </div>
 
-        <div class="mb-6">
-            <input type="text" id="searchInput" placeholder="Cari Judul atau Kode Item..." class="w-full p-3 custom-input rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition text-sm font-medium">
-        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-4">
+                <div class="card p-4 rounded-2xl">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        </span>
+                        <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Cari Kode Ekslempar atau Judul Buku..." class="w-full pl-10 pr-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                    </div>
+                </div>
 
-        <div class="flex justify-between items-center mb-4 px-1">
-            <span class="text-xs font-black opacity-50 uppercase tracking-widest">Daftar Item (<span id="totalItems">0</span>)</span>
-            <button onclick="toggleSelectAll()" id="selectAllBtn" class="text-xs font-black uppercase hover:text-blue-500 transition">Pilih Halaman Ini</button>
-        </div>
+                <div id="ekslemparList" class="space-y-2 min-h-[400px]"></div>
 
-        <div id="ekslemparList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[50vh] overflow-y-auto custom-scrollbar p-1">
-            <div class="col-span-full text-center py-20 opacity-40 font-bold uppercase tracking-widest">Memproses Data...</div>
-        </div>
+                <div class="card p-4 rounded-2xl flex justify-between items-center">
+                    <button id="prevPage" onclick="changePage(-1)" class="pagination-btn">Sebelumnya</button>
+                    <span id="pageIndicator" class="text-xs font-bold uppercase tracking-widest">Halaman 1 / 1</span>
+                    <button id="nextPage" onclick="changePage(1)" class="pagination-btn">Berikutnya</button>
+                </div>
+            </div>
 
-        <div class="mt-8 flex justify-between items-center custom-input p-4 rounded-xl">
-            <button id="prevPage" class="custom-card px-5 py-2 rounded-lg font-bold disabled:opacity-30">Sebelumnya</button>
-            <span id="pageInfo" class="text-sm font-black uppercase">Halaman 1 / 1</span>
-            <button id="nextPage" class="custom-card px-5 py-2 rounded-lg font-bold disabled:opacity-30">Berikutnya</button>
+            <div class="space-y-4">
+                <div class="card p-6 rounded-2xl sticky top-8">
+                    <h2 class="font-bold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        Preview Label
+                    </h2>
+                    <div id="previewContainer" class="flex flex-col items-center gap-4 bg-slate-100 dark:bg-slate-800 p-6 rounded-xl border border-dashed border-slate-300 dark:border-slate-600">
+                        <div id="singlePreview" class="label-preview shadow-xl">
+                            <div class="text-[6pt] uppercase tracking-widest text-slate-400 mb-1">Preview</div>
+                            <div class="text-center text-[8pt] font-bold">Pilih item untuk melihat preview</div>
+                        </div>
+                    </div>
+                    <div class="mt-6 pt-6 border-t border-[var(--border-color)]">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span style="color: var(--text-sub)">Total terpilih:</span>
+                            <span id="summaryCount" class="font-bold">0 Item</span>
+                        </div>
+                        <button onclick="clearSelection()" class="w-full py-2 text-sm text-red-500 font-medium hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors">Batal Semua Pilihan</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -172,170 +199,177 @@
             messagingSenderId: "844439345466",
             appId: "1:844439345466:web:fb90dfc8337a96f0621803"
         };
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const rtdb = firebase.database();
 
-        rtdb.ref('settings/dark_mode').on('value', snap => {
-            if (snap.val() === true) {
-                document.body.classList.add('dark-theme');
-            } else {
-                document.body.classList.remove('dark-theme');
-            }
-        });
-
-        let allEkslempar = []; 
+        let allEkslempar = [];
         let filteredEkslempar = [];
-        let selectedEkslemparIds = new Set();
+        let selectedEkslempar = new Map();
         let currentPage = 1;
-        const itemsPerPage = 12;
+        const itemsPerPage = 10;
 
-        const listContainer = document.getElementById('ekslemparList');
-        const searchInput = document.getElementById('searchInput');
-        const selectedCountDisplay = document.getElementById('selectedCountDisplay');
-        const totalItemsDisplay = document.getElementById('totalItems');
-        const printBtn = document.getElementById('printBtn');
-        const selectAllBtn = document.getElementById('selectAllBtn');
-        const pageInfo = document.getElementById('pageInfo');
-
-        function getCurrentPageItems() {
-            const start = (currentPage - 1) * itemsPerPage;
-            return filteredEkslempar.slice(start, start + itemsPerPage);
-        }
-
-        function updateSelectedCount() {
-            const count = selectedEkslemparIds.size;
-            selectedCountDisplay.textContent = count;
-            printBtn.disabled = count === 0;
-            const currentItems = getCurrentPageItems();
-            const allVisibleSelected = currentItems.length > 0 && currentItems.every(item => selectedEkslemparIds.has(item.id));
-            selectAllBtn.textContent = allVisibleSelected ? 'Batal Pilih' : 'Pilih Halaman Ini';
-        }
-
-        function toggleSelection(id) {
-            if (selectedEkslemparIds.has(id)) selectedEkslemparIds.delete(id);
-            else selectedEkslemparIds.add(id);
-            renderEkslemparList();
-            updateSelectedCount();
-        }
-        
-        function toggleSelectAll() {
-            const currentItems = getCurrentPageItems();
-            const allVisibleSelected = currentItems.length > 0 && currentItems.every(item => selectedEkslemparIds.has(item.id));
-            currentItems.forEach(item => {
-                if (allVisibleSelected) selectedEkslemparIds.delete(item.id);
-                else selectedEkslemparIds.add(item.id);
+        function setupDarkModeSync() {
+            rtdb.ref('settings/dark_mode').on('value', (snapshot) => {
+                if (snapshot.val() === true) {
+                    document.body.classList.add('dark-theme');
+                } else {
+                    document.body.classList.remove('dark-theme');
+                }
             });
-            renderEkslemparList();
-            updateSelectedCount();
         }
 
-        function renderEkslemparList() {
-            totalItemsDisplay.textContent = filteredEkslempar.length;
-            const currentItems = getCurrentPageItems();
-            const totalPages = Math.ceil(filteredEkslempar.length / itemsPerPage) || 1;
-            
-            if (currentItems.length === 0) {
-                listContainer.innerHTML = '<div class="col-span-full text-center py-10 opacity-40 font-bold uppercase tracking-widest">Data tidak ditemukan</div>';
-                return;
-            }
-
-            listContainer.innerHTML = currentItems.map(eks => {
-                const isSelected = selectedEkslemparIds.has(eks.id);
-                return `
-                    <div onclick="toggleSelection('${eks.id}')" class="flex items-center p-4 border rounded-2xl cursor-pointer transition-all ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'custom-card hover:border-blue-400'}">
-                        <div class="flex-grow">
-                            <p class="text-sm font-bold truncate w-full">${eks.judul || 'TANPA JUDUL'}</p>
-                            <p class="text-[11px] font-bold mt-1 ${isSelected ? 'opacity-80' : 'opacity-50'}">${eks.kode || '-'}</p>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            pageInfo.textContent = `Halaman ${currentPage} / ${totalPages}`;
-            document.getElementById('prevPage').disabled = currentPage === 1;
-            document.getElementById('nextPage').disabled = currentPage >= totalPages;
-        }
-
-        searchInput.oninput = () => {
-            const query = searchInput.value.toLowerCase();
+        function handleSearch() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
             filteredEkslempar = allEkslempar.filter(item => 
-                (item.judul || "").toLowerCase().includes(query) || 
-                (item.kode || "").toLowerCase().includes(query)
+                item.kode.toLowerCase().includes(q) || 
+                (item.judul && item.judul.toLowerCase().includes(q))
             );
             currentPage = 1;
             renderEkslemparList();
+        }
+
+        function changePage(delta) {
+            const totalPages = Math.ceil(filteredEkslempar.length / itemsPerPage) || 1;
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderEkslemparList();
+            }
+        }
+
+        function toggleSelect(id) {
+            const item = allEkslempar.find(e => e.id === id);
+            if (selectedEkslempar.has(id)) {
+                selectedEkslempar.delete(id);
+            } else {
+                selectedEkslempar.set(id, item);
+                updatePreview(item);
+            }
+            renderEkslemparList();
             updateSelectedCount();
-        };
+            preparePrintArea();
+        }
 
-        document.getElementById('prevPage').onclick = () => { if(currentPage > 1) { currentPage--; renderEkslemparList(); updateSelectedCount(); }};
-        document.getElementById('nextPage').onclick = () => { if(currentPage < Math.ceil(filteredEkslempar.length / itemsPerPage)) { currentPage++; renderEkslemparList(); updateSelectedCount(); }};
+        function updatePreview(item) {
+            const container = document.getElementById('singlePreview');
+            container.innerHTML = `
+                <div class="title">${item.judul || 'TANPA JUDUL'}</div>
+                <svg id="previewBarcode"></svg>
+                <div style="font-size: 8pt; font-weight: bold; margin-top: 1mm;">${item.kode}</div>
+            `;
+            JsBarcode("#previewBarcode", item.kode, {
+                format: "CODE128",
+                width: 1.5,
+                height: 35,
+                displayValue: false,
+                margin: 0
+            });
+        }
 
-        printBtn.onclick = () => {
-            const printArea = document.getElementById('printArea');
-            printArea.innerHTML = ''; 
-            const headerText = 'Perpustakaan Lubangsa';
-            const selectedData = allEkslempar.filter(e => selectedEkslemparIds.has(e.id));
+        function updateSelectedCount() {
+            const count = selectedEkslempar.size;
+            document.getElementById('selectedCountBtn').innerText = count;
+            document.getElementById('summaryCount').innerText = `${count} Item`;
+            document.getElementById('btnPrint').disabled = count === 0;
+        }
+
+        function clearSelection() {
+            selectedEkslempar.clear();
+            renderEkslemparList();
+            updateSelectedCount();
+            document.getElementById('singlePreview').innerHTML = `
+                <div class="text-[6pt] uppercase tracking-widest text-slate-400 mb-1">Preview</div>
+                <div class="text-center text-[8pt] font-bold">Pilih item untuk melihat preview</div>
+            `;
+        }
+
+        function renderEkslemparList() {
+            const container = document.getElementById('ekslemparList');
+            const totalPages = Math.ceil(filteredEkslempar.length / itemsPerPage) || 1;
             
-            selectedData.forEach(eks => {
-                const label = document.createElement('div');
-                label.className = 'label-barcode';
-                label.innerHTML = `
-                    <div class="label-header">${headerText}</div>
-                    <div class="label-content">
-                        <div class="label-title-mini">${eks.judul || ''}</div>
-                        <svg class="barcode-svg" id="barcode-${eks.id}"></svg>
-                        <div class="barcode-text">${eks.kode || ''}</div>
+            const start = (currentPage - 1) * itemsPerPage;
+            const paginatedItems = filteredEkslempar.slice(start, start + itemsPerPage);
+
+            document.getElementById('pageIndicator').innerText = `Halaman ${currentPage} / ${totalPages}`;
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage === totalPages;
+
+            if (paginatedItems.length === 0) {
+                container.innerHTML = `<div class="p-8 text-center text-slate-500">Data tidak ditemukan</div>`;
+                return;
+            }
+
+            container.innerHTML = paginatedItems.map(item => `
+                <div onclick="toggleSelect('${item.id}')" class="ekslempar-item card p-4 rounded-xl cursor-pointer flex items-center justify-between ${selectedEkslempar.has(item.id) ? 'selected' : ''}">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-blue-500 mb-1">${item.kode}</span>
+                        <span class="font-bold text-sm line-clamp-1">${item.judul || 'Tanpa Judul'}</span>
+                        <div class="flex gap-2 mt-1">
+                            <span class="text-[9px] font-bold px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">${item.nomor_panggil || '-'}</span>
+                            <span class="text-[9px] text-slate-400 uppercase">${item.lokasi_rak || 'Tanpa Lokasi'}</span>
+                        </div>
                     </div>
+                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedEkslempar.has(item.id) ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}">
+                        ${selectedEkslempar.has(item.id) ? '<svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function preparePrintArea() {
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = '';
+            
+            const grid = document.createElement('div');
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+            grid.style.gap = '5mm';
+            grid.style.padding = '5mm';
+
+            selectedEkslempar.forEach((item) => {
+                const label = document.createElement('div');
+                label.className = 'label-preview';
+                label.style.border = '1px solid #eee';
+                label.innerHTML = `
+                    <div class="title">${item.judul || ''}</div>
+                    <svg class="barcode-render" data-code="${item.kode}"></svg>
+                    <div style="font-size: 8pt; font-weight: bold; margin-top: 1mm;">${item.kode}</div>
                 `;
-                printArea.appendChild(label);
-                JsBarcode(`#barcode-${eks.id}`, String(eks.kode || '0'), {
-                    format: "CODE128", 
-                    displayValue: false, 
-                    width: 1.6, 
-                    height: 45, 
-                    margin: 0,
-                    background: "#ffffff",
-                    lineColor: "#000000"
+                grid.appendChild(label);
+            });
+
+            printArea.appendChild(grid);
+            
+            document.querySelectorAll('.barcode-render').forEach(el => {
+                JsBarcode(el, el.getAttribute('data-code'), {
+                    format: "CODE128",
+                    width: 1.2,
+                    height: 30,
+                    displayValue: false,
+                    margin: 0
                 });
             });
-            setTimeout(() => { window.print(); }, 500);
-        };
+        }
 
         async function initData() {
-            try {
-                const biblioSnap = await db.collection('biblio').orderBy('updatedAt', 'desc').get();
-                const kodeToTimeMap = {};
+            setupDarkModeSync();
+            
+            db.collection('ekslempar').onSnapshot(snapshot => {
+                allEkslempar = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
                 
-                biblioSnap.forEach(doc => {
-                    const data = doc.data();
-                    const time = data.updatedAt?.toMillis() || data.createdAt?.toMillis() || 0;
-                    if (data.kode && Array.isArray(data.kode)) {
-                        data.kode.forEach(k => {
-                            if (!kodeToTimeMap[k]) kodeToTimeMap[k] = time;
-                        });
-                    }
+                allEkslempar.sort((a, b) => {
+                    const timeA = a.updatedAt?.toMillis() || 0;
+                    const timeB = b.updatedAt?.toMillis() || 0;
+                    return timeB - timeA;
                 });
 
-                db.collection('ekslempar').onSnapshot(snapshot => {
-                    allEkslempar = snapshot.docs.map(doc => {
-                        const data = doc.data();
-                        return { 
-                            id: doc.id, 
-                            ...data, 
-                            sortTime: kodeToTimeMap[data.kode] || 0 
-                        };
-                    });
-                    
-                    allEkslempar.sort((a, b) => b.sortTime - a.sortTime);
-                    filteredEkslempar = [...allEkslempar];
-                    
-                    renderEkslemparList();
-                    updateSelectedCount();
-                });
-            } catch (error) {
-                console.error(error);
-            }
+                handleSearch(); 
+            });
         }
 
         window.onload = initData;
