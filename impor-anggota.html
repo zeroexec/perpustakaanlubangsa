@@ -138,15 +138,23 @@
                 <div class="space-y-3">
                     <div class="p-4 instruction-card rounded-2xl ring-2 ring-blue-500/20">
                         <p class="text-[10px] font-extrabold text-blue-500 uppercase flex justify-between">A. id <span class="text-[8px] bg-blue-500 text-white px-2 rounded">WAJIB</span></p>
-                        <p class="text-[11px] font-medium opacity-80">NIS atau Kode Unik</p>
+                        <p class="text-[11px] font-medium opacity-80">NIS / Kode Unik</p>
                     </div>
                     <div class="p-4 instruction-card rounded-2xl ring-2 ring-blue-500/20">
                         <p class="text-[10px] font-extrabold text-blue-500 uppercase flex justify-between">B. keanggotaan <span class="text-[8px] bg-blue-500 text-white px-2 rounded">WAJIB</span></p>
                         <p class="text-[11px] font-medium opacity-80">Nama Lengkap</p>
                     </div>
-                    <div class="p-4 instruction-card rounded-2xl opacity-60">
+                    <div class="p-4 instruction-card rounded-2xl opacity-70">
                         <p class="text-[10px] font-extrabold text-slate-500 uppercase">C. jenjang</p>
-                        <p class="text-[11px] font-medium opacity-80 italic">Opsional</p>
+                        <p class="text-[11px] font-medium opacity-80">SLTP / SLTA / PT</p>
+                    </div>
+                    <div class="p-4 instruction-card rounded-2xl opacity-70">
+                        <p class="text-[10px] font-extrabold text-slate-500 uppercase">D. organisasi</p>
+                        <p class="text-[11px] font-medium opacity-80">ORDA / Organisasi</p>
+                    </div>
+                    <div class="p-4 instruction-card rounded-2xl opacity-70">
+                        <p class="text-[10px] font-extrabold text-slate-500 uppercase">E. kamarSantri</p>
+                        <p class="text-[11px] font-medium opacity-80">Nama Kamar</p>
                     </div>
                 </div>
             </div>
@@ -193,7 +201,7 @@
                                 <th>ID / NIS</th>
                                 <th>Nama Lengkap</th>
                                 <th>Jenjang</th>
-                                <th>Organisasi</th>
+                                <th>Organisasi / Orda</th>
                                 <th>Kamar</th>
                             </tr>
                         </thead>
@@ -302,11 +310,11 @@
     }
 
     function downloadTemplate() {
-        const wsData = [["id", "keanggotaan", "jenjang", "organisasi", "kamarSantri"], ["1001", "CONTOH NAMA", "SLTA", "ORG", "A1"]];
+        const wsData = [["id", "keanggotaan", "jenjang", "organisasi", "kamarSantri"], ["1001", "CONTOH NAMA", "SLTA", "IKSTIDA", "A1"]];
         const ws = XLSX.utils.aoa_to_sheet(wsData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Template");
-        XLSX.writeFile(wb, "Template.xlsx");
+        XLSX.writeFile(wb, "Template_Impor.xlsx");
     }
 
     function showToast(msg) {
