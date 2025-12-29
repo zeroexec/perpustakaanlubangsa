@@ -22,7 +22,7 @@
             --border-color: #dadce0;
             --input-bg: #f1f3f4;
             --primary-light: #e8f0fe;
-            --modal-overlay: rgba(32, 33, 36, 0.6);
+            --modal-overlay: rgba(32, 33, 36, 0.4);
         }
 
         body.dark-theme { 
@@ -33,7 +33,7 @@
             --border-color: #3c4043;
             --input-bg: #2d2d2d;
             --primary-light: rgba(26, 115, 232, 0.2);
-            --modal-overlay: rgba(0, 0, 0, 0.8);
+            --modal-overlay: rgba(0, 0, 0, 0.7);
         }
 
         body { 
@@ -52,7 +52,7 @@
         .glass { 
             background: var(--bg-card); 
             border: 1px solid var(--border-color); 
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1); 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
             border-radius: 20px;
         }
         
@@ -60,13 +60,6 @@
             background: var(--input-bg) !important; 
             color: var(--text-main) !important; 
             border: 2px solid transparent !important; 
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        input:focus {
-            border-color: var(--primary) !important;
-            background: var(--bg-card) !important;
-            box-shadow: 0 0 0 4px var(--primary-light);
         }
 
         .autocomplete-list { 
@@ -76,7 +69,7 @@
             z-index: 1000;
             background: var(--bg-card); 
             border: 1px solid var(--border-color); 
-            box-shadow: 0 12px 40px rgba(0,0,0,0.2); 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); 
             border-radius: 16px;
             max-height: 280px;
             overflow-y: auto;
@@ -100,7 +93,6 @@
             gap: 12px;
             cursor: pointer;
             border-radius: 12px;
-            transition: all 0.2s;
             margin-bottom: 2px;
         }
 
@@ -108,34 +100,63 @@
             background: var(--primary-light); 
         }
 
-        .kbd-badge { 
-            background: var(--primary); 
-            color: white; 
-            border-radius: 6px; 
-            padding: 2px 8px; 
-            font-family: monospace; 
-            font-size: 10px; 
+        #toast-container { 
+            position: fixed; 
+            bottom: 40px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            z-index: 9999; 
+        }
+        
+        .toast-msg { 
+            background: var(--text-main); 
+            color: var(--bg-card); 
+            padding: 10px 20px; 
+            border-radius: 50px; 
+            font-size: 11px; 
             font-weight: 700; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: toastFast 0.2s ease-out;
         }
 
-        #toast-container { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; }
-        .toast-msg { background: var(--text-main); color: var(--bg-card); padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        @keyframes toastFast {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
         .modal-container {
             position: fixed; inset: 0; z-index: 100;
             display: none; align-items: center; justify-content: center;
             padding: 20px; background: var(--modal-overlay);
-            backdrop-filter: blur(4px);
+            animation: fadeOverlay 0.1s linear;
+        }
+
+        @keyframes fadeOverlay {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-fast {
+            animation: modalQuick 0.1s ease-out;
+            will-change: transform, opacity;
+            transform: translateZ(0);
+        }
+
+        @keyframes modalQuick {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
         }
 
         .btn-action {
             padding: 10px; border-radius: 12px; font-weight: 700; font-size: 10px;
-            text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s;
+            text-transform: uppercase; letter-spacing: 0.5px; transition: opacity 0.1s;
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
 
         .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-primary:active { opacity: 0.8; }
         .btn-secondary { background: var(--input-bg); color: var(--text-main); }
 
         #summary-detail, #success-card { display: none; }
@@ -157,7 +178,7 @@
 <div id="toast-container"></div>
 
 <div id="modal-confirm" class="modal-container">
-    <div class="glass w-full max-w-[300px] p-6 animate-in zoom-in duration-200">
+    <div class="glass w-full max-w-[280px] p-6 modal-fast">
         <div class="text-center mb-4">
             <h4 class="text-sm font-extrabold">Konfirmasi</h4>
             <p id="modal-text" class="text-[11px] opacity-60 mt-2"></p>
@@ -170,7 +191,7 @@
 </div>
 
 <div id="modal-date" class="modal-container">
-    <div class="glass w-full max-w-[300px] p-6 animate-in zoom-in duration-200">
+    <div class="glass w-full max-w-[280px] p-6 modal-fast">
         <h4 class="text-sm font-extrabold mb-4 text-center">Ubah Tanggal</h4>
         <div class="space-y-3">
             <input type="date" id="customDatePicker" class="w-full p-3 rounded-xl outline-none text-xs font-semibold">
@@ -186,7 +207,7 @@
     <div id="main-input-area" class="glass p-5">
         <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                     <i class="fas fa-exchange-alt text-xs"></i>
                 </div>
                 <div>
@@ -201,7 +222,7 @@
         </div>
     </div>
 
-    <div id="summary-detail" class="glass p-5 border-t-4 border-blue-600 animate-in slide-in-from-top-4 duration-300">
+    <div id="summary-detail" class="glass p-5 border-t-4 border-blue-600">
         <div class="flex justify-between items-start mb-4">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 bg-blue-600/10 text-blue-600 rounded-xl flex items-center justify-center text-sm">
@@ -227,45 +248,55 @@
         </div>
     </div>
 
-    <div id="success-card" class="glass p-4 border-l-4 border-green-500 animate-in zoom-in duration-300">
-        <div class="flex items-center gap-3 mb-4">
-            <div id="iconStatus" class="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg"></div>
-            <div class="flex-1 overflow-hidden">
-                <h3 id="statusTitle" class="text-xs font-black truncate"></h3>
-                <p id="finalNama" class="text-[10px] font-bold opacity-60 truncate"></p>
+    <div id="success-card" class="glass overflow-hidden">
+        <div id="cardHeader" class="p-5 flex items-center gap-4 border-b border-slate-100 dark:border-white/5">
+            <div id="iconStatus" class="w-12 h-12 rounded-2xl flex items-center justify-center text-white shrink-0"></div>
+            <div class="flex-1 min-w-0">
+                <h3 id="statusTitle" class="text-[10px] font-black uppercase tracking-wider opacity-60 mb-0.5"></h3>
+                <p id="finalNama" class="text-sm font-extrabold truncate text-blue-600 dark:text-blue-400"></p>
             </div>
-            <button onclick="resetKeAwal()" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/10"><i class="fas fa-times text-xs"></i></button>
+            <button onclick="resetKeAwal()" class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-red-500 hover:text-white"><i class="fas fa-times text-xs"></i></button>
         </div>
 
-        <div class="bg-slate-50 dark:bg-white/5 p-3 rounded-xl mb-4">
-            <div class="mb-2">
-                <p id="finalBuku" class="font-bold text-blue-500 text-[11px] leading-tight"></p>
-                <p id="finalKode" class="text-[9px] font-black opacity-30 uppercase"></p>
-            </div>
-            <div class="flex justify-between items-end border-t border-slate-200 dark:border-white/10 pt-2">
-                <div class="cursor-pointer" onclick="openDateModal()">
-                    <span class="text-[8px] font-black uppercase opacity-40 block">Tempo</span>
-                    <p id="finalTgl" class="font-bold text-[10px] text-red-500 flex items-center gap-1">
-                        <span></span> <i class="fas fa-pen text-[7px]"></i>
-                    </p>
+        <div class="p-5">
+            <div class="mb-5 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
+                <div class="flex gap-3 mb-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center text-xs shrink-0"><i class="fas fa-book"></i></div>
+                    <div>
+                        <p id="finalBuku" class="font-bold text-[12px] leading-snug mb-1"></p>
+                        <p id="finalKode" class="text-[9px] font-black opacity-40 tracking-widest uppercase"></p>
+                    </div>
                 </div>
-                <div class="text-right">
-                    <span class="text-[8px] font-black uppercase opacity-40 block">Denda</span>
-                    <p id="finalDenda" class="font-bold text-[10px] text-orange-500"></p>
+                
+                <div class="grid grid-cols-2 gap-3 pt-3 border-t border-dashed border-slate-200 dark:border-white/10">
+                    <div class="cursor-pointer" onclick="openDateModal()">
+                        <span class="text-[8px] font-black uppercase opacity-40 block mb-1">Jatuh Tempo</span>
+                        <div class="flex items-center gap-2">
+                            <p id="finalTgl" class="font-bold text-[11px] text-red-500 flex items-center gap-1.5 bg-red-500/10 px-2 py-1 rounded-lg">
+                                <span></span> <i class="fas fa-calendar-alt text-[8px]"></i>
+                            </p>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-[8px] font-black uppercase opacity-40 block mb-1">Total Denda</span>
+                        <p id="finalDenda" class="font-bold text-[11px] text-orange-500 bg-orange-500/10 px-2 py-1 rounded-lg w-fit"></p>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="grid grid-cols-2 gap-2">
-            <button id="btnPerpanjang" class="py-2.5 bg-blue-500/10 text-blue-600 rounded-lg font-bold text-[9px] flex items-center justify-center gap-1">
-                <span class="kbd-badge !bg-blue-600">1</span> PERPANJANG
-            </button>
-            <button id="btnKembali" class="py-2.5 bg-red-500/10 text-red-600 rounded-lg font-bold text-[9px] flex items-center justify-center gap-1">
-                <span class="kbd-badge !bg-red-600">3</span> KEMBALI
-            </button>
-            <button onclick="resetKeAwal()" class="col-span-2 py-2.5 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-lg font-bold text-[9px] flex items-center justify-center gap-2">
-                <span class="kbd-badge !bg-slate-500">2</span> SELESAI / BARU
-            </button>
+            <div class="flex flex-col gap-2">
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btnPerpanjang" class="py-3 bg-blue-600 text-white rounded-xl font-bold text-[10px] flex items-center justify-center gap-2">
+                        <span class="bg-white/20 px-1.5 py-0.5 rounded text-[8px]">1</span> PERPANJANG
+                    </button>
+                    <button id="btnKembali" class="py-3 bg-red-600 text-white rounded-xl font-bold text-[10px] flex items-center justify-center gap-2">
+                        <span class="bg-white/20 px-1.5 py-0.5 rounded text-[8px]">3</span> KEMBALI
+                    </button>
+                </div>
+                <button onclick="resetKeAwal()" class="w-full py-3 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl font-bold text-[10px] flex items-center justify-center gap-2">
+                    <span class="bg-slate-700 dark:bg-slate-200 px-1.5 py-0.5 rounded text-[8px]">2</span> SELESAI / BARU
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -300,10 +331,12 @@
     });
 
     function showToast(msg) {
-        const t = document.createElement('div'); t.className = 'toast-msg animate-in slide-in-from-top duration-300'; t.textContent = msg;
+        const t = document.createElement('div'); 
+        t.className = 'toast-msg'; 
+        t.innerHTML = `<i class="fas fa-check-circle text-green-400"></i> ${msg}`;
         document.getElementById('toast-container').innerHTML = '';
         document.getElementById('toast-container').appendChild(t);
-        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2500);
+        setTimeout(() => { t.remove(); }, 2000);
     }
 
     function openModal(text, onConfirm, triggerBtnId) {
@@ -353,27 +386,42 @@
         const q = inM.value.toLowerCase(); lsM.innerHTML = ''; currentFocus = -1;
         if(q.length < 1) return lsM.classList.add('hidden');
         
-        const mA = dataAnggota.filter(a => (a.keanggotaan||"").toLowerCase().includes(q) || (a.id||"").toLowerCase().includes(q) || (a.kamarSantri||"").toLowerCase().includes(q)).slice(0, 5);
-        const mP = dataPinjaman.filter(p => (p.judul_buku||"").toLowerCase().includes(q) || (p.kode_ekslempar||"").toLowerCase().includes(q)).slice(0, 5);
-        
+        const mP = dataPinjaman.filter(p => (p.nama_anggota||"").toLowerCase().includes(q) || (p.judul_buku||"").toLowerCase().includes(q) || (p.kode_ekslempar||"").toLowerCase().includes(q) || (p.anggota_id||"").toLowerCase().includes(q)).slice(0, 5);
+        const pinjamIds = mP.map(p => p.anggota_id);
+
+        const mA = dataAnggota.filter(a => 
+            ((a.keanggotaan||"").toLowerCase().includes(q) || (a.id||"").toLowerCase().includes(q) || (a.kamarSantri||"").toLowerCase().includes(q)) && 
+            !pinjamIds.includes(a.id)
+        ).slice(0, 5);
+
         if(mA.length) {
-            const h = document.createElement('div'); h.className = 'autocomplete-header'; h.textContent = 'Anggota'; lsM.appendChild(h);
+            const h = document.createElement('div'); h.className = 'autocomplete-header'; h.textContent = 'Anggota (Baru)'; lsM.appendChild(h);
             mA.forEach(a => {
                 const d = document.createElement('div'); d.className = 'autocomplete-item';
-                d.innerHTML = `<i class="fas fa-id-card opacity-30 text-blue-600"></i> <div class="flex-1"><b class="main-id-text">${a.id}</b><br><small class="font-bold text-[11px] block">${a.keanggotaan}</small></div>`;
+                d.innerHTML = `<i class="fas fa-id-card opacity-30 text-blue-600"></i> <div class="flex-1 min-w-0"><b class="main-id-text">${a.id}</b><br><small class="font-bold text-[11px] block truncate">${a.keanggotaan}</small></div>`;
                 d.onclick = () => { selectedAnggota = a; checkActiveLoan(a); }; lsM.appendChild(d);
             });
         }
+
         if(mP.length) {
-            const h = document.createElement('div'); h.className = 'autocomplete-header'; h.textContent = 'Pinjaman'; lsM.appendChild(h);
+            const h = document.createElement('div'); h.className = 'autocomplete-header'; h.textContent = 'Data Pinjaman Aktif'; lsM.appendChild(h);
             mP.forEach(p => {
                 const d = document.createElement('div'); d.className = 'autocomplete-item';
-                d.innerHTML = `<i class="fas fa-book-reader text-orange-500"></i> <div class="flex-1"><b class="main-id-text">${p.anggota_id}</b><br><small class='font-bold block text-[11px]'>${p.nama_anggota}</small></div>`;
+                d.innerHTML = `
+                    <i class="fas fa-book-reader text-orange-500 shrink-0"></i> 
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-center mb-0.5">
+                            <b class="text-[10px] font-black text-orange-500 uppercase truncate mr-2">${p.nama_anggota}</b>
+                            <span class="text-[8px] font-black opacity-30 shrink-0">${p.kode_ekslempar}</span>
+                        </div>
+                        <small class="font-bold block text-[10px] leading-tight opacity-70 truncate">${p.judul_buku}</small>
+                    </div>`;
                 d.onclick = () => { currentLoanDocId = p.id; showSuccessCard(p.nama_anggota, p.judul_buku, p.kode_ekslempar, p.tgl_kembali.toDate(), true, p.anggota_id); lsM.classList.add('hidden'); };
                 lsM.appendChild(d);
             });
         }
-        lsM.classList.toggle('hidden', (mA.length + mP.length) === 0);
+        
+        lsM.classList.toggle('hidden', lsM.innerHTML === '');
     });
 
     async function checkActiveLoan(a) {
@@ -393,7 +441,7 @@
             m.forEach(i => {
                 const d = document.createElement('div'); d.className = 'autocomplete-item';
                 let c = (i.kode || "-").trim(); 
-                d.innerHTML = `<i class="fas fa-barcode opacity-30 text-emerald-500"></i> <div class="flex-1"><b class="main-id-text !text-emerald-500">${c}</b><br><small class='font-bold text-[11px] block'>${i.judul}</small></div>`;
+                d.innerHTML = `<i class="fas fa-barcode opacity-30 text-emerald-500"></i> <div class="flex-1 min-w-0"><b class="main-id-text !text-emerald-500">${c}</b><br><small class='font-bold text-[11px] block truncate'>${i.judul}</small></div>`;
                 d.onclick = () => { selectedBuku = { kode: c, judul: i.judul }; inB.value = c; lsB.classList.add('hidden'); tampilkanBuku(); }; lsB.appendChild(d);
             });
         }
@@ -421,15 +469,22 @@
         document.getElementById("main-input-area").style.display = 'none';
         document.getElementById("displayNis").textContent = selectedAnggota.id;
         document.getElementById("displayNama").textContent = selectedAnggota.keanggotaan;
-        document.getElementById("summary-detail").style.display = 'block'; setTimeout(() => inB.focus(), 100);
+        document.getElementById("summary-detail").style.display = 'block'; 
+        setTimeout(() => inB.focus(), 50);
     }
     function tampilkanBuku() {
-        document.getElementById("bukuTerpilihBox").classList.remove('hidden'); document.getElementById("resJudul").textContent = selectedBuku.judul;
-        document.getElementById("resKode").textContent = selectedBuku.kode; document.getElementById("btnProses").disabled = false; document.getElementById("btnProses").focus();
+        const box = document.getElementById("bukuTerpilihBox");
+        box.classList.remove('hidden'); 
+        document.getElementById("resJudul").textContent = selectedBuku.judul;
+        document.getElementById("resKode").textContent = selectedBuku.kode; 
+        document.getElementById("btnProses").disabled = false; 
+        document.getElementById("btnProses").focus();
     }
     function resetKeAwal() {
-        document.getElementById("success-card").style.display = 'none'; document.getElementById("summary-detail").style.display = 'none';
-        document.getElementById("main-input-area").style.display = 'block'; document.getElementById("bukuTerpilihBox").classList.add('hidden');
+        document.getElementById("success-card").style.display = 'none'; 
+        document.getElementById("summary-detail").style.display = 'none';
+        document.getElementById("main-input-area").style.display = 'block'; 
+        document.getElementById("bukuTerpilihBox").classList.add('hidden');
         inM.value = ''; inB.value = ''; selectedAnggota = null; selectedBuku = null; currentLoanDocId = null; currentLoadedDate = null;
         document.getElementById("btnProses").disabled = true; document.getElementById("btnPerpanjang").disabled = false;
         document.getElementById("btnKembali").disabled = false; setTimeout(() => inM.focus(), 50);
@@ -445,11 +500,12 @@
 
     function showSuccessCard(n, j, k, t, e = false, idStr = "") {
         currentLoadedDate = t;
-        document.getElementById("main-input-area").style.display = 'none'; document.getElementById("summary-detail").style.display = 'none';
+        document.getElementById("main-input-area").style.display = 'none'; 
+        document.getElementById("summary-detail").style.display = 'none';
         document.getElementById("success-card").style.display = 'block'; 
-        document.getElementById("statusTitle").textContent = e ? "Pinjaman Aktif" : "Selesai";
-        document.getElementById("iconStatus").className = `w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg ${e ? 'bg-blue-600' : 'bg-green-500'}`;
-        document.getElementById("iconStatus").innerHTML = `<i class="fas ${e ? 'fa-info' : 'fa-check'} text-sm"></i>`;
+        document.getElementById("statusTitle").textContent = e ? "Pinjaman Aktif" : "Transaksi Berhasil";
+        document.getElementById("iconStatus").className = `w-12 h-12 rounded-2xl flex items-center justify-center text-white ${e ? 'bg-blue-600' : 'bg-green-500'}`;
+        document.getElementById("iconStatus").innerHTML = `<i class="fas ${e ? 'fa-hourglass-half' : 'fa-check-circle'} text-lg"></i>`;
         document.getElementById("finalNama").textContent = n; 
         document.getElementById("finalBuku").textContent = j;
         document.getElementById("finalKode").textContent = k; 
