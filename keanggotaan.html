@@ -12,50 +12,102 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        :root { --bg: #f8fafc; --card: #ffffff; --primary: #2563eb; --text: #0f172a; --border: #f1f5f9; }
-        body.dark-theme { --bg: #020617; --card: #0f172a; --primary: #3b82f6; --text: #f1f5f9; --border: #1e293b; }
+        :root { 
+            --bg: #f8fafc; 
+            --card: #ffffff; 
+            --primary: #2563eb; 
+            --text: #0f172a; 
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --input-bg: #ffffff;
+        }
+
+        body.dark-theme { 
+            --bg: #020617; 
+            --card: #0f172a; 
+            --primary: #3b82f6; 
+            --text: #f1f5f9; 
+            --text-muted: #94a3b8;
+            --border: #1e293b;
+            --input-bg: #1e293b;
+        }
 
         body { 
-            background-color: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif;
-            min-height: 100vh; overflow-x: hidden;
+            background-color: var(--bg); 
+            color: var(--text); 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh; 
+            overflow-x: hidden;
+            transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .glass { background: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 20px -1px rgba(0,0,0,0.05); }
+        .glass { 
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            box-shadow: 0 4px 20px -1px rgba(0,0,0,0.02); 
+            transition: background 0.4s, border-color 0.4s, box-shadow 0.4s;
+        }
         
         input, select { 
-            background: var(--bg) !important; color: var(--text) !important; 
-            border: 1.5px solid var(--border) !important; transition: all 0.2s;
+            background: var(--input-bg) !important; 
+            color: var(--text) !important; 
+            border: 1.5px solid var(--border) !important; 
+            transition: all 0.2s;
             appearance: none;
         }
-        input:focus, select:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important; }
+        input:focus, select:focus { 
+            border-color: var(--primary) !important; 
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important; 
+        }
         
-        input.invalid { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important; }
+        input.invalid { 
+            border-color: #ef4444 !important; 
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important; 
+        }
 
-        .member-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .member-card:hover { transform: translateY(-4px); box-shadow: 0 12px 25px -5px rgba(0,0,0,0.1); border-color: var(--primary); }
+        .member-card { 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        .member-card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: 0 12px 25px -5px rgba(0,0,0,0.1); 
+            border-color: var(--primary); 
+        }
 
         #modal-member { display: none; }
         
         .btn-action { 
             width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; 
-            border-radius: 10px; transition: all 0.2s; background: var(--bg); border: 1px solid var(--border);
+            border-radius: 10px; transition: all 0.2s; 
+            background: var(--bg); 
+            border: 1px solid var(--border);
+            color: var(--text-muted);
         }
         .btn-action:hover { transform: scale(1.1); }
         .btn-edit:hover { color: #2563eb; border-color: #2563eb; background: rgba(37, 99, 235, 0.05); }
         .btn-delete:hover { color: #ef4444; border-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
 
         .btn-primary {
-            background: #2563eb; color: white; transition: all 0.3s;
+            background: var(--primary); 
+            color: white; 
+            transition: all 0.3s;
             box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
         }
-        .btn-primary:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 15px 20px -3px rgba(37, 99, 235, 0.3); }
+        .btn-primary:hover:not(:disabled) { 
+            filter: brightness(1.1);
+            transform: translateY(-1px); 
+            box-shadow: 0 15px 20px -3px rgba(37, 99, 235, 0.3); 
+        }
         .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(1); }
         
-        .badge-jenjang { font-size: 8px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: #2563eb; color: white; margin-left: 6px; }
+        .badge-jenjang { font-size: 8px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: var(--primary); color: white; margin-left: 6px; }
         .badge-org { font-size: 8px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: #10b981; color: white; margin-left: 4px; }
+
+        .text-muted { color: var(--text-muted); }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        body.dark-theme ::-webkit-scrollbar-thumb { background: #334155; }
     </style>
 </head>
 <body class="p-4 md:p-10">
@@ -66,24 +118,24 @@
     <div class="glass w-full max-w-sm p-8 rounded-[2.5rem] animate-in zoom-in duration-300">
         <div class="text-center mb-6">
             <h4 id="modal-title" class="text-xl font-extrabold tracking-tight">Tambah Anggota</h4>
-            <p class="text-[10px] opacity-40 uppercase font-bold mt-1">Lengkapi informasi di bawah</p>
+            <p class="text-[10px] text-muted uppercase font-bold mt-1">Lengkapi informasi di bawah</p>
         </div>
         <form id="memberForm" class="space-y-4">
             <input type="hidden" id="editId">
             <div class="space-y-1">
                 <div class="flex justify-between items-center ml-1">
-                    <label class="text-[9px] font-extrabold uppercase opacity-40">ID Anggota / NIS</label>
+                    <label class="text-[9px] font-extrabold uppercase text-muted">ID Anggota / NIS</label>
                     <span id="idError" class="text-[8px] text-red-500 font-bold hidden">ID SUDAH DIGUNAKAN!</span>
                 </div>
                 <input type="text" id="memberId" required class="w-full p-4 rounded-2xl outline-none text-sm font-bold">
             </div>
             <div class="space-y-1">
-                <label class="text-[9px] font-extrabold uppercase opacity-40 ml-1">Nama Lengkap</label>
+                <label class="text-[9px] font-extrabold uppercase text-muted ml-1">Nama Lengkap</label>
                 <input type="text" id="memberName" required class="w-full p-4 rounded-2xl outline-none text-sm font-bold">
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div class="space-y-1">
-                    <label class="text-[9px] font-extrabold uppercase opacity-40 ml-1">Jenjang</label>
+                    <label class="text-[9px] font-extrabold uppercase text-muted ml-1">Jenjang</label>
                     <select id="memberJenjang" required class="w-full p-4 rounded-2xl outline-none text-sm font-bold cursor-pointer">
                         <option value="SLTP">SLTP</option>
                         <option value="SLTA">SLTA</option>
@@ -91,16 +143,16 @@
                     </select>
                 </div>
                 <div class="space-y-1">
-                    <label class="text-[9px] font-extrabold uppercase opacity-40 ml-1">Organisasi</label>
+                    <label class="text-[9px] font-extrabold uppercase text-muted ml-1">Organisasi</label>
                     <input type="text" id="memberOrg" placeholder="Contoh: IKSTIDA" class="w-full p-4 rounded-2xl outline-none text-sm font-bold">
                 </div>
             </div>
             <div class="space-y-1">
-                <label class="text-[9px] font-extrabold uppercase opacity-40 ml-1">Kamar</label>
+                <label class="text-[9px] font-extrabold uppercase text-muted ml-1">Kamar</label>
                 <input type="text" id="memberRoom" required class="w-full p-4 rounded-2xl outline-none text-sm font-bold">
             </div>
             <div class="flex gap-3 pt-2">
-                <button type="button" onclick="closeModal()" class="flex-1 py-4 bg-slate-100 dark:bg-slate-800 rounded-2xl font-bold text-xs">BATAL</button>
+                <button type="button" onclick="closeModal()" class="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-muted rounded-2xl font-bold text-xs">BATAL</button>
                 <button type="submit" id="btnSubmit" class="flex-[2] py-4 btn-primary rounded-2xl font-extrabold text-xs uppercase tracking-widest">Simpan</button>
             </div>
         </form>
@@ -116,12 +168,17 @@
                 </div>
                 <h1 class="text-3xl font-extrabold tracking-tighter">Anggota</h1>
             </div>
-            <p class="text-xs opacity-50 font-medium">Terdaftar sebanyak <span id="countMember" class="text-blue-600 font-extrabold">0</span> jiwa dalam sistem.</p>
+            <div class="flex items-center gap-4">
+                <p class="text-xs text-muted font-medium">Terdaftar <span id="countMember" class="text-blue-600 font-extrabold">0</span> jiwa.</p>
+                <button onclick="deleteAllMembers()" class="text-[10px] font-bold text-red-500 hover:text-red-600 uppercase tracking-widest flex items-center gap-1 transition-colors">
+                    <i class="fas fa-trash-alt"></i> Hapus Semua
+                </button>
+            </div>
         </div>
         
         <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <div class="relative w-full sm:w-72">
-                <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 opacity-20 text-xs"></i>
+                <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-muted text-xs"></i>
                 <input type="text" id="searchMember" placeholder="Cari nama, ID, atau organisasi..." class="w-full pl-12 pr-5 py-4 rounded-2xl outline-none text-xs font-semibold shadow-sm">
             </div>
             <button onclick="openAddModal()" class="w-full sm:w-auto btn-primary px-8 py-4 rounded-2xl font-extrabold text-xs flex items-center justify-center gap-3 tracking-widest">
@@ -132,6 +189,16 @@
 
     <div id="memberList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
     </div>
+
+    <div id="pagination-controls" class="mt-10 flex justify-center items-center gap-4">
+        <button id="prevPage" onclick="changePage(-1)" class="w-10 h-10 flex items-center justify-center rounded-xl glass border-slate-200 dark:border-slate-700 disabled:opacity-20">
+            <i class="fas fa-chevron-left text-xs"></i>
+        </button>
+        <span id="pageInfo" class="text-[10px] font-extrabold uppercase tracking-widest text-muted">Halaman 1</span>
+        <button id="nextPage" onclick="changePage(1)" class="w-10 h-10 flex items-center justify-center rounded-xl glass border-slate-200 dark:border-slate-700 disabled:opacity-20">
+            <i class="fas fa-chevron-right text-xs"></i>
+        </button>
+    </div>
 </div>
 
 <script>
@@ -140,20 +207,40 @@
     const db = firebase.firestore(), rtdb = firebase.database();
 
     let allMembers = [];
+    let filteredMembers = [];
+    let currentPage = 1;
+    const itemsPerPage = 12;
 
-    rtdb.ref('settings/dark_mode').on('value', snap => document.body.classList.toggle('dark-theme', snap.val() === true));
+    rtdb.ref('settings/dark_mode').on('value', snap => {
+        if(snap.val() === true) {
+            document.body.classList.add('dark-theme');
+        } else {
+            document.body.classList.remove('dark-theme');
+        }
+    });
 
     db.collection("keanggotaan_v2").orderBy("keanggotaan", "asc").onSnapshot(snapshot => {
         allMembers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderMembers(allMembers);
+        filteredMembers = [...allMembers];
         document.getElementById('countMember').textContent = allMembers.length;
+        currentPage = 1;
+        updateDisplay();
     });
+
+    function updateDisplay() {
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const paginatedData = filteredMembers.slice(start, end);
+        
+        renderMembers(paginatedData);
+        updatePaginationButtons();
+    }
 
     function renderMembers(data) {
         const container = document.getElementById('memberList');
         container.innerHTML = '';
         if(data.length === 0) {
-            container.innerHTML = `<div class="col-span-full py-20 text-center opacity-20 font-bold uppercase tracking-widest text-xs">Data tidak ditemukan</div>`;
+            container.innerHTML = `<div class="col-span-full py-20 text-center text-muted opacity-30 font-bold uppercase tracking-widest text-xs">Data tidak ditemukan</div>`;
             return;
         }
         data.forEach(m => {
@@ -172,7 +259,7 @@
                                 ${m.organisasi ? `<span class="badge-org">${m.organisasi}</span>` : ''}
                             </div>
                         </div>
-                        <p class="text-[9px] opacity-40 font-mono mt-0.5 uppercase tracking-tighter font-bold">ID: ${m.id} &bull; ${m.kamarSantri || '-'}</p>
+                        <p class="text-[9px] text-muted font-mono mt-0.5 uppercase tracking-tighter font-bold">ID: ${m.id} &bull; ${m.kamarSantri || '-'}</p>
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -182,6 +269,22 @@
             `;
             container.appendChild(card);
         });
+    }
+
+    function updatePaginationButtons() {
+        const totalPages = Math.ceil(filteredMembers.length / itemsPerPage) || 1;
+        document.getElementById('prevPage').disabled = currentPage === 1;
+        document.getElementById('nextPage').disabled = currentPage === totalPages;
+        document.getElementById('pageInfo').textContent = `Halaman ${currentPage} dari ${totalPages}`;
+        
+        const controls = document.getElementById('pagination-controls');
+        controls.style.display = filteredMembers.length <= itemsPerPage ? 'none' : 'flex';
+    }
+
+    function changePage(dir) {
+        currentPage += dir;
+        updateDisplay();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     const mId = document.getElementById('memberId');
@@ -204,19 +307,20 @@
 
     document.getElementById('searchMember').addEventListener('input', (e) => {
         const q = e.target.value.toLowerCase();
-        const filtered = allMembers.filter(m => 
+        filteredMembers = allMembers.filter(m => 
             m.keanggotaan.toLowerCase().includes(q) || 
             m.id.toLowerCase().includes(q) ||
             (m.kamarSantri && m.kamarSantri.toLowerCase().includes(q)) ||
             (m.jenjang && m.jenjang.toLowerCase().includes(q)) ||
             (m.organisasi && m.organisasi.toLowerCase().includes(q))
         );
-        renderMembers(filtered);
+        currentPage = 1;
+        updateDisplay();
     });
 
     function showToast(msg) {
         const t = document.createElement('div');
-        t.className = 'bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-extrabold mb-3 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 uppercase tracking-widest';
+        t.className = 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-8 py-3 rounded-2xl text-[10px] font-extrabold mb-3 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 uppercase tracking-widest';
         t.textContent = msg;
         const container = document.getElementById('toast-container');
         container.appendChild(t);
@@ -293,6 +397,22 @@
                 await db.collection("keanggotaan_v2").doc(id).delete();
                 showToast("Data Terhapus");
             } catch(e) { showToast("Gagal Hapus"); }
+        }
+    }
+
+    async function deleteAllMembers() {
+        if(confirm("PERINGATAN! Anda akan menghapus SELURUH data anggota secara permanen. Lanjutkan?")) {
+            const batch = db.batch();
+            const snapshot = await db.collection("keanggotaan_v2").get();
+            snapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            try {
+                await batch.commit();
+                showToast("Semua data berhasil dihapus");
+            } catch(e) {
+                showToast("Gagal menghapus data");
+            }
         }
     }
 </script>
