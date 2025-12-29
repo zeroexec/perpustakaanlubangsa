@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAFTAR PEMINJAM</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root { 
+            --primary: #1a73e8;
+            --bg-body: #f8f9fa; 
+            --text-main: #202124; 
+            --bg-card: #ffffff;
+            --border-color: #dadce0;
+            --input-bg: #f1f3f4;
+        }
+
+        body.dark-theme { 
+            --bg-body: #121212; 
+            --text-main: #e8eaed; 
+            --bg-card: #1e1e1e;
+            --border-color: #3c4043;
+            --input-bg: #2d2d2d;
+        }
+
+        body { 
+            background-color: var(--bg-body); 
+            color: var(--text-main); 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            transition: all 0.3s;
+        }
+
+        .glass { 
+            background: var(--bg-card); 
+            border: 1px solid var(--border-color); 
+            border-radius: 20px;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .status-dipinjam { background: rgba(26, 115, 232, 0.1); color: #1a73e8; }
+        .status-terlambat { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+
+        #toast-container { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; }
+        .toast-msg { background: var(--text-main); color: var(--bg-card); padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+        .modal-container {
+            position: fixed; inset: 0; z-index: 100;
+            display: none; align-items: center; justify-content: center;
+            padding: 20px; background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+<div id="toast-container"></div>
+
+<div id="modal-confirm" class="modal-container">
+    <div class="glass w-full max-w-[320px] p-6 text-center">
+        <h4 class="font-extrabold mb-2">Konfirmasi</h4>
+        <p id="modal-text" class="text-xs opacity-60 mb-6"></p>
+        <div class="flex gap-2">
+            <button onclick="closeModal()" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-white/10 font-bold text-xs">Batal</button>
+            <button id="modal-confirm-btn" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-xs">Konfirmasi</button>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-5xl mx-auto">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-2xl font-extrabold tracking-tight">Daftar Peminjam</h1>
+            <p class="text-xs font-bold opacity-50 uppercase tracking-widest mt-1">Sirkulasi Aktif</p>
+        </div>
+        <div class="glass px-6 py-3 flex items-center gap-4">
+            <div class="text-right">
+                <p class="text-[10px] font-black opacity-40 uppercase tracking-widest">Total Peminjam</p>
+                <p id="totalCount" class="text-xl font-black text-blue-600">0</p>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-blue-600/10 flex items-center justify-center text-blue-600">
+                <i class="fas fa-users"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass p-4 mb-6 flex flex-wrap gap-4 items-center">
+        <div class="relative flex-1 min-w-[260px]">
+            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 opacity-30 text-xs"></i>
+            <input type="text" id="searchInp" placeholder="Cari Nama, ID, atau Judul Buku..." class="w-full pl-10 pr-4 py-3 rounded-xl outline-none text-xs font-bold bg-slate-100 dark:bg-white/5 border-none">
+        </div>
+    </div>
+
+    <div class="glass overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
+                        <th class="p-4 text-[10px] font-black uppercase opacity-40">Peminjam</th>
+                        <th class="p-4 text-[10px] font-black uppercase opacity-40">Buku</th>
+                        <th class="p-4 text-[10px] font-black uppercase opacity-40">Jatuh Tempo</th>
+                        <th class="p-4 text-[10px] font-black uppercase opacity-40 text-center">Status</th>
+                        <th class="p-4 text-[10px] font-black uppercase opacity-40 text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <div id="emptyState" class="p-20 text-center hidden">
+            <i class="fas fa-box-open text-4xl opacity-10 mb-4 block"></i>
+            <p class="text-xs font-bold opacity-40">Tidak ada data peminjaman aktif ditemukan</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = { apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ", databaseURL: "https://databuku-6385c-default-rtdb.firebaseio.com", projectId: "databuku-6385c" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(), rtdb = firebase.database();
+
+    rtdb.ref('settings/dark_mode').on('value', snap => {
+        document.body.classList.toggle('dark-theme', snap.val() === true);
+    });
+
+    let rawData = [];
+
+    db.collection("peminjaman_v2").where("status", "==", "DIPINJAM").onSnapshot(snapshot => {
+        rawData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderData();
+    });
+
+    function renderData() {
+        const search = document.getElementById('searchInp').value.toLowerCase();
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        const filtered = rawData.filter(d => {
+            return (d.nama_anggota || "").toLowerCase().includes(search) || 
+                   (d.anggota_id || "").toLowerCase().includes(search) || 
+                   (d.judul_buku || "").toLowerCase().includes(search) ||
+                   (d.kode_ekslempar || "").toLowerCase().includes(search);
+        });
+
+        document.getElementById('totalCount').textContent = filtered.length;
+
+        if (filtered.length === 0) {
+            document.getElementById('emptyState').classList.remove('hidden');
+        } else {
+            document.getElementById('emptyState').classList.add('hidden');
+            
+            filtered.sort((a, b) => a.tgl_kembali.toDate() - b.tgl_kembali.toDate());
+
+            filtered.forEach(d => {
+                const tglTempo = d.tgl_kembali ? d.tgl_kembali.toDate() : new Date();
+                const isLate = new Date() > tglTempo;
+                
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-4">
+                        <p class="text-[11px] font-extrabold text-blue-600 dark:text-blue-400">${d.anggota_id}</p>
+                        <p class="text-xs font-bold">${d.nama_anggota}</p>
+                    </td>
+                    <td class="p-4">
+                        <p class="text-xs font-bold leading-tight">${d.judul_buku}</p>
+                        <p class="text-[9px] font-black opacity-30 mt-1 tracking-widest">${d.kode_ekslempar}</p>
+                    </td>
+                    <td class="p-4">
+                        <p class="text-xs font-bold ${isLate ? 'text-red-500' : ''}">${tglTempo.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}</p>
+                    </td>
+                    <td class="p-4 text-center">
+                        <span class="status-badge ${isLate ? 'status-terlambat' : 'status-dipinjam'}">
+                            ${isLate ? 'Terlambat' : 'Dipinjam'}
+                        </span>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex justify-end gap-2">
+                            <button onclick="confirmAction('${d.id}', 'perpanjang')" class="action-btn bg-blue-500/10 text-blue-600 hover:bg-blue-600 hover:text-white" title="Perpanjang">
+                                <i class="fas fa-clock-rotate-left text-[10px]"></i>
+                            </button>
+                            <button onclick="confirmAction('${d.id}', 'kembali')" class="action-btn bg-green-500/10 text-green-600 hover:bg-green-600 hover:text-white" title="Kembalikan">
+                                <i class="fas fa-check text-[10px]"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    document.getElementById('searchInp').addEventListener('input', renderData);
+
+    function showToast(msg) {
+        const t = document.createElement('div'); t.className = 'toast-msg animate-in slide-in-from-top duration-300'; t.textContent = msg;
+        document.getElementById('toast-container').innerHTML = '';
+        document.getElementById('toast-container').appendChild(t);
+        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2500);
+    }
+
+    function confirmAction(id, type) {
+        const modal = document.getElementById('modal-confirm');
+        const text = type === 'perpanjang' ? 'Perpanjang masa pinjam selama 4 hari?' : 'Konfirmasi pengembalian buku ini?';
+        document.getElementById('modal-text').textContent = text;
+        modal.style.display = 'flex';
+        
+        document.getElementById('modal-confirm-btn').onclick = async () => {
+            const btn = document.getElementById('modal-confirm-btn');
+            btn.disabled = true; btn.textContent = '...';
+            try {
+                if (type === 'perpanjang') {
+                    const doc = await db.collection("peminjaman_v2").doc(id).get();
+                    const currentTempo = doc.data().tgl_kembali.toDate();
+                    const newTempo = new Date(currentTempo);
+                    newTempo.setDate(newTempo.getDate() + 4);
+                    await db.collection("peminjaman_v2").doc(id).update({ tgl_kembali: firebase.firestore.Timestamp.fromDate(newTempo) });
+                } else {
+                    await db.collection("peminjaman_v2").doc(id).update({ 
+                        status: "KEMBALI", 
+                        tgl_dikembalikan: firebase.firestore.FieldValue.serverTimestamp() 
+                    });
+                }
+                showToast("Berhasil diproses");
+                closeModal();
+            } catch (e) {
+                showToast("Gagal memproses");
+            }
+            btn.disabled = false; btn.textContent = 'Konfirmasi';
+        };
+    }
+
+    function closeModal() { document.getElementById('modal-confirm').style.display = 'none'; }
+</script>
+</body>
+</html>
