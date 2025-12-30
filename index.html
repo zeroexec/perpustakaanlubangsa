@@ -50,6 +50,7 @@
         .book-card { 
             background: var(--card); border: 1px solid var(--border);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
         }
         .book-card:hover {
             transform: translateY(-8px);
@@ -60,6 +61,13 @@
             background: var(--card);
             color: var(--text);
             border: 1px solid var(--border);
+            transform: scale(0.95);
+            opacity: 0;
+            transition: all 0.2s ease-out;
+        }
+        #modalContainer.flex .modal-content {
+            transform: scale(1);
+            opacity: 1;
         }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
@@ -108,7 +116,7 @@
 </main>
 
 <div id="modalContainer" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
-    <div class="absolute inset-0 bg-[var(--modal-overlay)] backdrop-blur-md" onclick="closeDetails()"></div>
+    <div class="absolute inset-0 bg-[var(--modal-overlay)] backdrop-blur-sm transition-opacity" onclick="closeDetails()"></div>
     <div class="modal-content relative w-full max-w-5xl max-h-[90vh] rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col">
         <div class="flex justify-between items-center px-10 py-6 border-b border-[var(--border)]">
             <span class="text-[10px] font-black uppercase tracking-widest opacity-40">Detail Bibliografi</span>
@@ -249,53 +257,58 @@
         const modal = document.getElementById('modalContainer');
         const body = document.getElementById('modalBody');
         const codes = Array.isArray(b.kode) ? b.kode : [];
-        const avail = codes.filter(c => !loans.includes(c)).length;
-
-        body.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-12">
-                <div class="md:col-span-4 space-y-8">
-                    <div class="aspect-[3/4] rounded-[2rem] overflow-hidden shadow-2xl border border-[var(--border)]">
-                        <img src="${b.sampul_url || ''}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600?text=No+Cover'">
+        
+        body.innerHTML = '';
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        requestAnimationFrame(() => {
+            const content = `
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-12">
+                    <div class="md:col-span-4 space-y-8">
+                        <div class="aspect-[3/4] rounded-[2rem] overflow-hidden shadow-2xl border border-[var(--border)]">
+                            <img src="${b.sampul_url || ''}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x600?text=No+Cover'">
+                        </div>
+                        <div class="p-8 rounded-[2rem] bg-blue-600 text-white shadow-xl shadow-blue-500/20">
+                            <p class="text-[10px] font-black uppercase opacity-60 mb-6 tracking-widest">Ketersediaan Unit</p>
+                            <div class="space-y-3 max-h-48 overflow-y-auto custom-scrollbar pr-2">
+                                ${codes.map(c => {
+                                    const isL = loans.includes(c);
+                                    return `<div class="flex justify-between items-center text-[10px] font-bold bg-white/10 p-4 rounded-2xl">
+                                        <div class="flex flex-col">
+                                            <span class="opacity-60 text-[8px] uppercase tracking-tighter">${ekslemparMap.get(c)||'-'}</span>
+                                            <span>${c}</span>
+                                        </div>
+                                        <span class="px-3 py-1 rounded-full ${isL ? 'bg-red-500/30 text-red-100' : 'bg-green-500/30 text-green-100'} uppercase text-[8px] font-black">
+                                            ${isL ? 'Keluar' : 'Tersedia'}
+                                        </span>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        </div>
                     </div>
-                    <div class="p-8 rounded-[2rem] bg-blue-600 text-white shadow-xl shadow-blue-500/20">
-                        <p class="text-[10px] font-black uppercase opacity-60 mb-6 tracking-widest">Ketersediaan Unit</p>
-                        <div class="space-y-3 max-h-48 overflow-y-auto custom-scrollbar pr-2">
-                            ${codes.map(c => {
-                                const isL = loans.includes(c);
-                                return `<div class="flex justify-between items-center text-[10px] font-bold bg-white/10 p-4 rounded-2xl">
-                                    <div class="flex flex-col">
-                                        <span class="opacity-60 text-[8px] uppercase tracking-tighter">${ekslemparMap.get(c)||'-'}</span>
-                                        <span>${c}</span>
-                                    </div>
-                                    <span class="px-3 py-1 rounded-full ${isL ? 'bg-red-500/30 text-red-100' : 'bg-green-500/30 text-green-100'} uppercase text-[8px] font-black">
-                                        ${isL ? 'Keluar' : 'Tersedia'}
-                                    </span>
-                                </div>`;
-                            }).join('')}
+                    <div class="md:col-span-8 space-y-10">
+                        <div>
+                            <h2 class="text-4xl font-extrabold leading-tight tracking-tight">${b.judul}</h2>
+                            <p class="text-xl font-bold text-blue-500 mt-3">${b.penulis || 'Anonim'}</p>
+                        </div>
+                        <div class="space-y-4">
+                            <h4 class="text-[10px] font-black uppercase tracking-widest opacity-40">Sinopsis / Catatan</h4>
+                            <p class="text-base leading-relaxed opacity-80">${b.abstrak || 'Informasi abstrak belum tersedia untuk koleksi ini.'}</p>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-10 border-t border-[var(--border)]">
+                            <div><p class="text-[10px] font-black opacity-30 uppercase mb-2 tracking-widest">ISBN</p><p class="text-sm font-bold">${b.isbn_issn || '-'}</p></div>
+                            <div><p class="text-[10px] font-black opacity-30 uppercase mb-2 tracking-widest">Penerbit</p><p class="text-sm font-bold uppercase">${b.penerbit || '-'}</p></div>
+                            <div><p class="text-[10px] font-black opacity-30 uppercase mb-2 tracking-widest">Tahun</p><p class="text-sm font-bold">${b.tahun_terbit || '-'}</p></div>
+                            <div><p class="text-[10px] font-black opacity-30 uppercase mb-2 tracking-widest">No. Panggil</p><p class="text-sm font-bold text-blue-500 font-mono">${b.nomor_panggil || '-'}</p></div>
                         </div>
                     </div>
                 </div>
-                <div class="md:col-span-8 space-y-10">
-                    <div>
-                        <h2 class="text-4xl font-extrabold leading-tight tracking-tight">${b.judul}</h2>
-                        <p class="text-xl font-bold text-blue-500 mt-3">${b.penulis || 'Anonim'}</p>
-                    </div>
-                    <div class="space-y-4">
-                        <h4 class="text-[10px] font-black uppercase tracking-widest opacity-40">Sinopsis / Catatan</h4>
-                        <p class="text-base leading-relaxed opacity-80">${b.abstrak || 'Informasi abstrak belum tersedia untuk koleksi ini.'}</p>
-                    </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-10 border-t border-[var(--border)]">
-                        <div><p class="text-[10px] font-black opacity-30 uppercase mb-2 tracking-widest">ISBN</p><p class="text-sm font-bold">${b.isbn_issn || '-'}</p></div>
-                        <div><p class="text-[10px] font-black opacity-30 uppercase mb-2 tracking-widest">Penerbit</p><p class="text-sm font-bold uppercase">${b.penerbit || '-'}</p></div>
-                        <div><p class="text-[10px] font-black opacity-30 uppercase mb-2 tracking-widest">Tahun</p><p class="text-sm font-bold">${b.tahun_terbit || '-'}</p></div>
-                        <div><p class="text-[10px] font-black opacity-30 uppercase mb-2 tracking-widest">No. Panggil</p><p class="text-sm font-bold text-blue-500 font-mono">${b.nomor_panggil || '-'}</p></div>
-                    </div>
-                </div>
-            </div>
-        `;
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
+            `;
+            body.innerHTML = content;
+            document.body.style.overflow = 'hidden';
+        });
     }
 
     function closeDetails() {
@@ -303,6 +316,7 @@
         modal.classList.add('hidden');
         modal.classList.remove('flex');
         document.body.style.overflow = 'auto';
+        document.getElementById('modalBody').innerHTML = '';
     }
 
     document.getElementById('searchInput').addEventListener('input', (e) => {
