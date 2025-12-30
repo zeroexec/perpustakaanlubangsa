@@ -133,11 +133,6 @@
             animation: fadeOverlay 0.1s linear;
         }
 
-        @keyframes fadeOverlay {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
         .modal-fast {
             animation: modalQuick 0.1s ease-out;
             will-change: transform, opacity;
@@ -242,9 +237,12 @@
             </div>
             <div id="bukuTerpilihBox" class="p-3 bg-blue-600/5 rounded-xl border border-blue-600/10 hidden">
                 <p id="resJudul" class="font-bold text-[11px] leading-tight"></p>
-                <p id="resKode" class="text-[9px] font-black opacity-40 uppercase"></p>
+                <div class="flex justify-between items-center mt-1">
+                    <p id="resKode" class="text-[9px] font-black opacity-40 uppercase tracking-widest"></p>
+                    <p id="resPengarang" class="text-[9px] font-bold text-blue-500"></p>
+                </div>
             </div>
-            <button id="btnProses" class="w-full py-3 btn-primary rounded-xl disabled:opacity-30" disabled onclick="handleSimpan()">Simpan</button>
+            <button id="btnProses" class="w-full py-3 btn-primary rounded-xl disabled:opacity-30" disabled onclick="handleSimpan()">Simpan Pinjaman</button>
         </div>
     </div>
 
@@ -262,8 +260,8 @@
             <div class="mb-5 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
                 <div class="flex gap-3 mb-3">
                     <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center text-xs shrink-0"><i class="fas fa-book"></i></div>
-                    <div>
-                        <p id="finalBuku" class="font-bold text-[12px] leading-snug mb-1"></p>
+                    <div class="flex-1 min-w-0">
+                        <p id="finalBuku" class="font-bold text-[12px] leading-snug mb-1 truncate"></p>
                         <p id="finalKode" class="text-[9px] font-black opacity-40 tracking-widest uppercase"></p>
                     </div>
                 </div>
@@ -279,7 +277,7 @@
                     </div>
                     <div>
                         <span class="text-[8px] font-black uppercase opacity-40 block mb-1">Total Denda</span>
-                        <p id="finalDenda" class="font-bold text-[11px] text-orange-500 bg-orange-500/10 px-2 py-1 rounded-lg w-fit"></p>
+                        <p id="finalDenda" class="font-bold text-[11px] text-orange-500 bg-orange-500/10 px-2 py-1 rounded-lg w-fit">Rp 0</p>
                     </div>
                 </div>
             </div>
@@ -442,7 +440,7 @@
                 const d = document.createElement('div'); d.className = 'autocomplete-item';
                 let c = (i.kode || "-").trim(); 
                 d.innerHTML = `<i class="fas fa-barcode opacity-30 text-emerald-500"></i> <div class="flex-1 min-w-0"><b class="main-id-text !text-emerald-500">${c}</b><br><small class='font-bold text-[11px] block truncate'>${i.judul}</small></div>`;
-                d.onclick = () => { selectedBuku = { kode: c, judul: i.judul }; inB.value = c; lsB.classList.add('hidden'); tampilkanBuku(); }; lsB.appendChild(d);
+                d.onclick = () => { selectedBuku = { kode: c, judul: i.judul, pengarang: i.penulis || "-" }; inB.value = c; lsB.classList.add('hidden'); tampilkanBuku(); }; lsB.appendChild(d);
             });
         }
         lsB.classList.toggle('hidden', m.length === 0);
@@ -477,6 +475,7 @@
         box.classList.remove('hidden'); 
         document.getElementById("resJudul").textContent = selectedBuku.judul;
         document.getElementById("resKode").textContent = selectedBuku.kode; 
+        document.getElementById("resPengarang").textContent = selectedBuku.pengarang; 
         document.getElementById("btnProses").disabled = false; 
         document.getElementById("btnProses").focus();
     }
@@ -518,19 +517,39 @@
         const b = document.getElementById("btnProses"); b.disabled = true;
         try {
             const tk = new Date(); tk.setDate(tk.getDate() + 4);
-            const doc = await db.collection("peminjaman_v2").add({ anggota_id: selectedAnggota.id, nama_anggota: selectedAnggota.keanggotaan, kode_ekslempar: selectedBuku.kode, judul_buku: selectedBuku.judul, tgl_pinjam: firebase.firestore.Timestamp.fromDate(new Date()), tgl_kembali: firebase.firestore.Timestamp.fromDate(tk), status: "DIPINJAM" });
-            currentLoanDocId = doc.id; showToast("Berhasil"); showSuccessCard(selectedAnggota.keanggotaan, selectedBuku.judul, selectedBuku.kode, tk, false, selectedAnggota.id);
+            const doc = await db.collection("peminjaman_v2").add({ 
+                anggota_id: selectedAnggota.id, 
+                nama_anggota: selectedAnggota.keanggotaan, 
+                blok: selectedAnggota.kamarSantri || "-",
+                kode_ekslempar: selectedBuku.kode, 
+                judul_buku: selectedBuku.judul, 
+                pengarang: selectedBuku.pengarang,
+                tgl_pinjam: firebase.firestore.Timestamp.fromDate(new Date()), 
+                tgl_kembali: firebase.firestore.Timestamp.fromDate(tk), 
+                status: "DIPINJAM" 
+            });
+            currentLoanDocId = doc.id; 
+            showToast("Berhasil"); 
+            showSuccessCard(selectedAnggota.keanggotaan, selectedBuku.judul, selectedBuku.kode, tk, false, selectedAnggota.id);
         } catch(e) { b.disabled = false; showToast("Gagal"); }
     }
+    
     async function handlePerpanjang() {
-        const tb = new Date(); tb.setDate(tb.getDate() + 4);
+        const tb = new Date(currentLoadedDate); tb.setDate(tb.getDate() + 4);
         try { 
             await db.collection("peminjaman_v2").doc(currentLoanDocId).update({ tgl_kembali: firebase.firestore.Timestamp.fromDate(tb) }); 
             showToast("Berhasil"); currentLoadedDate = tb; renderSuccessData(tb);
             document.getElementById("btnPerpanjang").disabled = false; 
         } catch(e) { showToast("Gagal"); }
     }
-    async function handleKembali() { try { await db.collection("peminjaman_v2").doc(currentLoanDocId).update({ status: "KEMBALI", tgl_dikembalikan: firebase.firestore.FieldValue.serverTimestamp() }); showToast("Berhasil"); setTimeout(() => resetKeAwal(), 500); } catch(e) { showToast("Gagal"); } }
+    
+    async function handleKembali() { 
+        try { 
+            await db.collection("peminjaman_v2").doc(currentLoanDocId).update({ status: "KEMBALI", tgl_dikembalikan: firebase.firestore.FieldValue.serverTimestamp() }); 
+            showToast("Berhasil"); 
+            setTimeout(() => resetKeAwal(), 500); 
+        } catch(e) { showToast("Gagal"); } 
+    }
 </script>
 </body>
 </html>
