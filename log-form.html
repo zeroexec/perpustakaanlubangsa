@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Log Aktivitas</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --bg: #f8fafc; 
+            --text-main: #0f172a; 
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --input-bg: #f8fafc;
+        }
+
+        body.dark-theme { 
+            --bg: #000000; 
+            --text-main: #f1f5f9; 
+            --card-bg: #121212;
+            --border-color: #262626;
+            --input-bg: #1a1a1a;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .custom-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+        }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th { 
+            text-transform: uppercase; 
+            font-size: 9px; 
+            letter-spacing: 0.1em; 
+            opacity: 0.5; 
+            padding: 1rem; 
+            text-align: left; 
+            border-bottom: 1px solid var(--border-color); 
+            background-color: var(--card-bg);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        td { 
+            padding: 1rem; 
+            border-bottom: 1px solid var(--border-color); 
+            font-size: 12px; 
+            transition: all 0.2s; 
+        }
+        
+        tr.selected td { background-color: rgba(59, 130, 246, 0.15); border-color: #3b82f6; }
+        tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
+        tr { cursor: pointer; }
+        
+        .badge { padding: 4px 10px; font-size: 8px; font-weight: 800; border-radius: 50px; text-transform: uppercase; }
+        .badge-baca { background: #dcfce7; color: #166534; }
+        .badge-pinjam { background: #dbeafe; color: #1e40af; }
+        
+        body.dark-theme .badge-baca { background: #064e3b; color: #ecfdf5; }
+        body.dark-theme .badge-pinjam { background: #1e3a8a; color: #eff6ff; }
+
+        #bulkAction { display: none; }
+        .copy-btn:active { transform: scale(0.9); }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-[95%] mx-auto">
+        <div class="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight uppercase">Log Aktivitas</h1>
+                <p class="text-xs opacity-50 font-medium">Monitoring kunjungan dan peminjaman buku</p>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <button onclick="copyAllTable()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl shadow-lg transition text-[10px] font-black uppercase tracking-widest">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Salin Semua
+                </button>
+
+                <div id="bulkAction" class="flex items-center gap-3 bg-red-600 p-1.5 pl-4 rounded-xl shadow-lg">
+                    <span id="selectedCount" class="text-white text-[10px] font-black uppercase tracking-widest">0 Terpilih</span>
+                    <button onclick="deleteBulk()" class="bg-white text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase hover:bg-red-50 transition">Hapus</button>
+                </div>
+
+                <div class="flex gap-2">
+                    <div class="bg-blue-600 text-white px-5 py-2 rounded-2xl shadow-lg shadow-blue-500/20 text-right">
+                        <p class="text-[8px] font-black uppercase opacity-70 tracking-widest">Hari Ini</p>
+                        <h2 id="todayLog" class="text-xl font-black leading-none">0</h2>
+                    </div>
+                    <div class="custom-card px-5 py-2 rounded-2xl shadow-sm text-right">
+                        <p class="text-[8px] font-black uppercase opacity-40 tracking-widest">Total</p>
+                        <h2 id="totalLog" class="text-xl font-black leading-none">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="custom-card rounded-3xl overflow-hidden shadow-sm">
+            <div class="overflow-x-auto custom-scrollbar">
+                <table id="logTable">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Nama Lengkap</th>
+                            <th>Kamar</th>
+                            <th>Jenjang</th>
+                            <th>Judul Buku</th>
+                            <th>Kategori</th>
+                            <th>Aksi</th>
+                            <th class="text-center">Salin</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logContent"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ", 
+            databaseURL: "https://databuku-6385c-default-rtdb.firebaseio.com", 
+            projectId: "databuku-6385c" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const rtdb = firebase.database();
+
+        let selectedIds = new Set();
+        let currentLogs = [];
+
+        rtdb.ref('settings/opac_dark_mode').on('value', snap => {
+            if (snap.val() === true) {
+                document.body.classList.add('dark-theme');
+            } else {
+                document.body.classList.remove('dark-theme');
+            }
+        });
+
+        db.collection("log_aktivitas").orderBy("timestamp", "desc").onSnapshot(snap => {
+            const container = document.getElementById('logContent');
+            const totalEl = document.getElementById('totalLog');
+            const todayEl = document.getElementById('todayLog');
+            
+            container.innerHTML = '';
+            totalEl.innerText = snap.size;
+            currentLogs = [];
+
+            let todayCount = 0;
+            const now = new Date();
+            const todayStr = now.toLocaleDateString('id-ID');
+
+            snap.forEach(doc => {
+                const log = doc.data();
+                const id = doc.id;
+                const dateObj = log.timestamp ? log.timestamp.toDate() : new Date();
+                const dateStr = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                const timeStr = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                
+                if (dateObj.toLocaleDateString('id-ID') === todayStr) todayCount++;
+
+                currentLogs.push({ ...log, dateStr, timeStr });
+
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-id', id);
+                if (selectedIds.has(id)) tr.classList.add('selected');
+
+                tr.onclick = (e) => {
+                    if (e.target.closest('.copy-btn')) return;
+                    if (selectedIds.has(id)) {
+                        selectedIds.delete(id);
+                        tr.classList.remove('selected');
+                    } else {
+                        selectedIds.add(id);
+                        tr.classList.add('selected');
+                    }
+                    updateUI();
+                };
+
+                const copyRowData = `${log.nama} | ${log.judul} | ${log.kategori}`;
+
+                tr.innerHTML = `
+                    <td class="font-mono text-[10px] opacity-60">
+                        <div class="font-bold">${dateStr}</div>
+                        <div class="text-[9px] opacity-50">${timeStr}</div>
+                    </td>
+                    <td class="font-bold">${log.nama || '-'}</td>
+                    <td class="uppercase font-medium text-[10px]">${log.kamar || '-'}</td>
+                    <td class="font-bold opacity-70 text-[10px]">${log.jenjang || '-'}</td>
+                    <td class="font-bold text-blue-600 dark:text-blue-400 max-w-[200px] truncate">${log.judul || '-'}</td>
+                    <td class="text-[10px] font-bold opacity-60">${log.kategori || '-'}</td>
+                    <td><span class="badge ${log.aktivitas === 'Baca' ? 'badge-baca' : 'badge-pinjam'}">${log.aktivitas || '-'}</span></td>
+                    <td class="text-center">
+                        <button onclick="copyToClipboard('${copyRowData}')" class="copy-btn p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition text-slate-400 hover:text-blue-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                            </svg>
+                        </button>
+                    </td>
+                `;
+                container.appendChild(tr);
+            });
+            todayEl.innerText = todayCount;
+            updateUI();
+        });
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Data Berhasil Disalin');
+            });
+        }
+
+        function copyAllTable() {
+            if (currentLogs.length === 0) return;
+            const header = "Tanggal | Jam | Nama | Kamar | Jenjang | Judul | Kategori | Aktivitas\n";
+            const rows = currentLogs.map(log => 
+                `${log.dateStr} | ${log.timeStr} | ${log.nama} | ${log.kamar} | ${log.jenjang} | ${log.judul} | ${log.kategori} | ${log.aktivitas}`
+            ).join('\n');
+            
+            navigator.clipboard.writeText(header + rows).then(() => {
+                showToast(`Berhasil Salin ${currentLogs.length} Baris`);
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest z-[100] shadow-2xl';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        function updateUI() {
+            const bar = document.getElementById('bulkAction');
+            const countLabel = document.getElementById('selectedCount');
+            bar.style.display = selectedIds.size > 0 ? 'flex' : 'none';
+            countLabel.innerText = `${selectedIds.size} Terpilih`;
+        }
+
+        async function deleteBulk() {
+            if (confirm(`Hapus ${selectedIds.size} data terpilih?`)) {
+                const batch = db.batch();
+                selectedIds.forEach(id => batch.delete(db.collection("log_aktivitas").doc(id)));
+                try {
+                    await batch.commit();
+                    selectedIds.clear();
+                    updateUI();
+                } catch (err) { alert('Gagal menghapus.'); }
+            }
+        }
+    </script>
+</body>
+</html>
