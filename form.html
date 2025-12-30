@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Aktivitas Perpustakaan</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --bg: #e2e8f0; 
+            --card: #ffffff; 
+            --text-main: #1e293b; 
+            --text-muted: #475569;
+            --border: #cbd5e1; 
+            --input-bg: #f8fafc;
+            --accent: #2563eb;
+        }
+        body.dark-theme { 
+            --bg: #0f172a; 
+            --card: #1e293b; 
+            --text-main: #f1f5f9; 
+            --text-muted: #94a3b8;
+            --border: #334155; 
+            --input-bg: #0f172a;
+            --accent: #3b82f6;
+        }
+        body { 
+            background-color: var(--bg); 
+            color: var(--text-main); 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            transition: all 0.3s ease;
+        }
+        .form-card { 
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        .suggestion-box {
+            position: absolute; 
+            z-index: 50; 
+            width: 100%; 
+            max-height: 200px; 
+            overflow-y: auto;
+            background: var(--card); 
+            border: 2px solid var(--accent); 
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); 
+            display: none; 
+            margin-top: 4px;
+        }
+        .suggestion-item { 
+            padding: 12px 16px; 
+            cursor: pointer; 
+            border-bottom: 1px solid var(--border); 
+            transition: all 0.2s;
+        }
+        .suggestion-item.selected { 
+            background-color: var(--accent) !important; 
+            color: white !important; 
+        }
+        .suggestion-item:hover:not(.selected) { 
+            background-color: var(--input-bg); 
+        }
+        input, select { 
+            background-color: var(--input-bg) !important; 
+            color: var(--text-main) !important; 
+            border: 2px solid var(--border) !important; 
+            transition: all 0.2s ease;
+        }
+        input:focus, select:focus {
+            border-color: var(--accent) !important;
+            background-color: var(--card) !important;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+            outline: none;
+        }
+        label { color: var(--text-muted); font-weight: 700; }
+        input:disabled, select:disabled { 
+            opacity: 0.5; 
+            background-color: var(--bg) !important;
+            border-style: dashed !important;
+        }
+        .divider {
+            height: 2px;
+            background: linear-gradient(to right, transparent, var(--border), transparent);
+            margin: 1.5rem 0;
+        }
+        #inputKamar {
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body class="p-4 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-lg form-card p-6 md:p-10 rounded-[2rem]">
+        <div class="mb-8 relative">
+            <div class="absolute -left-4 top-0 w-1 h-12 bg-blue-600 rounded-full"></div>
+            <h1 class="text-2xl font-extrabold tracking-tight">Log Aktivitas</h1>
+            <p class="text-xs font-bold opacity-60 uppercase tracking-widest">Perpustakaan Digital</p>
+        </div>
+
+        <form id="activityForm" class="space-y-5">
+            <div class="relative">
+                <div class="flex justify-between items-center mb-2 px-1">
+                    <label class="text-[11px] uppercase tracking-wider">Nama Lengkap / NIS</label>
+                    <a href="pendaftaran-anggota.html" class="text-[10px] font-extrabold text-blue-500 bg-blue-500/10 px-2 py-1 rounded-md hover:bg-blue-500/20 transition-all">Daftar Baru</a>
+                </div>
+                <input type="text" id="inputNama" placeholder="Cari Nama Anda..." autocomplete="off" required
+                    class="w-full p-4 rounded-xl font-bold text-sm shadow-inner">
+                <input type="hidden" id="selectedMemberId">
+                <div id="suggestNama" class="suggestion-box custom-scrollbar"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label class="text-[11px] uppercase tracking-wider px-1">Kamar</label>
+                    <input type="text" id="inputKamar" required disabled placeholder="Auto"
+                        class="member-dependent w-full p-4 rounded-xl font-bold text-sm">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[11px] uppercase tracking-wider px-1">Jenjang</label>
+                    <select id="inputJenjang" required disabled
+                        class="member-dependent w-full p-4 rounded-xl font-bold text-sm appearance-none">
+                        <option value="" disabled selected>-</option>
+                        <option value="SLTP">SLTP</option>
+                        <option value="SLTA">SLTA</option>
+                        <option value="PT">PT</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="relative">
+                <label class="block text-[11px] uppercase tracking-wider mb-2 px-1">Buku / Kode Koleksi</label>
+                <input type="text" id="inputBuku" placeholder="Cari Judul Buku..." autocomplete="off" required
+                    class="w-full p-4 rounded-xl font-bold text-sm shadow-inner">
+                <input type="hidden" id="selectedBookId">
+                <input type="hidden" id="selectedBookCode">
+                <div id="suggestBuku" class="suggestion-box custom-scrollbar"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label class="text-[11px] uppercase tracking-wider px-1">Kategori</label>
+                    <select id="inputKategori" required disabled
+                        class="book-dependent w-full p-4 rounded-xl font-bold text-sm appearance-none">
+                        <option value="" disabled selected>-</option>
+                        <option value="Kesusastraan">Kesusastraan</option>
+                        <option value="Komik">Komik</option>
+                        <option value="Agama">Agama</option>
+                        <option value="Sejarah dan Geografi">Sejarah dan Geografi</option>
+                        <option value="Filsafat dan Psikologi">Filsafat dan Psikologi</option>
+                        <option value="Ilmu Sosial">Ilmu Sosial</option>
+                        <option value="Ilmu Bahasa">Ilmu Bahasa</option>
+                        <option value="Karya Umum">Karya Umum</option>
+                        <option value="Ilmu Murni">Ilmu Murni</option>
+                        <option value="Majalah">Majalah</option>
+                        <option value="Managemen">Managemen</option>
+                        <option value="Berita">Berita</option>
+                        <option value="Kesenian">Kesenian</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[11px] uppercase tracking-wider px-1">Aktivitas</label>
+                    <select id="inputAktivitas" required disabled
+                        class="book-dependent w-full p-4 rounded-xl font-bold text-sm appearance-none">
+                        <option value="" disabled selected>-</option>
+                        <option value="Baca">Baca</option>
+                        <option value="Pinjam">Pinjam</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="pt-4">
+                <button type="submit" id="btnSubmit" disabled
+                    class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-extrabold text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_-5px_rgba(37,99,235,0.4)] transition-all active:scale-[0.98] disabled:opacity-30 disabled:shadow-none">
+                    Simpan Riwayat
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBB-vrCvxeSapbedNqQIfZ9Bh5de-sUDAQ", 
+            databaseURL: "https://databuku-6385c-default-rtdb.firebaseio.com", 
+            projectId: "databuku-6385c" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const rtdb = firebase.database();
+
+        rtdb.ref('settings/opac_dark_mode').on('value', snap => {
+            document.body.classList.toggle('dark-theme', snap.val() === true);
+        });
+
+        let dataAnggota = [];
+        let dataBuku = [];
+        let currentFocus = -1;
+
+        db.collection("keanggotaan_v2").onSnapshot(snap => {
+            dataAnggota = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        });
+
+        rtdb.ref('data_flat').on('value', snap => {
+            const data = snap.val();
+            if (data) dataBuku = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+        });
+
+        function updateFieldStatus() {
+            const memberId = document.getElementById('selectedMemberId').value;
+            const bookId = document.getElementById('selectedBookId').value;
+            const memberFields = document.querySelectorAll('.member-dependent');
+            const bookFields = document.querySelectorAll('.book-dependent');
+            const btn = document.getElementById('btnSubmit');
+
+            memberFields.forEach(f => f.disabled = !memberId);
+            bookFields.forEach(f => f.disabled = !bookId);
+            btn.disabled = !(memberId && bookId);
+        }
+
+        document.getElementById('inputKamar').addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+
+        function setupSuggestion(inputEl, suggestBox, type) {
+            inputEl.addEventListener('input', () => {
+                const val = inputEl.value.toLowerCase();
+                suggestBox.innerHTML = '';
+                currentFocus = -1;
+                
+                if (type === 'nama') document.getElementById('selectedMemberId').value = "";
+                if (type === 'buku') {
+                    document.getElementById('selectedBookId').value = "";
+                    document.getElementById('selectedBookCode').value = "";
+                }
+                updateFieldStatus();
+
+                if (!val) { suggestBox.style.display = 'none'; return; }
+
+                let list = type === 'nama' ? dataAnggota : dataBuku;
+                let filterKey = type === 'nama' ? 'keanggotaan' : 'judul';
+
+                const filtered = list.filter(d => 
+                    (d[filterKey] || '').toLowerCase().includes(val) || 
+                    (d.id || d.kode || '').toLowerCase().includes(val)
+                ).slice(0, 8);
+
+                if (filtered.length > 0) {
+                    filtered.forEach((d, i) => {
+                        const div = document.createElement('div');
+                        div.className = 'suggestion-item';
+                        let subText = type === 'nama' ? `ID: ${d.id} | Kamar: ${d.kamarSantri || '-'}` : `Kode: ${d.kode || '-'}`;
+                        div.innerHTML = `<div class="font-bold text-sm">${d[filterKey] || 'N/A'}</div><div class="text-[10px] opacity-60 font-bold uppercase">${subText}</div>`;
+                        div.onclick = () => {
+                            if(type === 'nama') {
+                                inputEl.value = d.keanggotaan;
+                                document.getElementById('selectedMemberId').value = d.id;
+                                document.getElementById('inputKamar').value = (d.kamarSantri || '').toUpperCase();
+                                document.getElementById('inputJenjang').value = d.jenjang || '';
+                            } else {
+                                inputEl.value = d.judul;
+                                document.getElementById('selectedBookId').value = d.id;
+                                document.getElementById('selectedBookCode').value = d.kode || '';
+                                document.getElementById('inputKategori').value = d.kategori || '';
+                            }
+                            suggestBox.style.display = 'none';
+                            updateFieldStatus();
+                        };
+                        suggestBox.appendChild(div);
+                    });
+                    suggestBox.style.display = 'block';
+                } else {
+                    suggestBox.style.display = 'none';
+                }
+            });
+
+            inputEl.addEventListener('keydown', (e) => {
+                let x = suggestBox.getElementsByClassName('suggestion-item');
+                if (e.keyCode == 40) { currentFocus++; addActive(x); }
+                else if (e.keyCode == 38) { currentFocus--; addActive(x); }
+                else if (e.keyCode == 13) {
+                    if (currentFocus > -1) {
+                        e.preventDefault();
+                        if (x[currentFocus]) x[currentFocus].click();
+                    }
+                }
+            });
+
+            function addActive(x) {
+                if (!x || x.length === 0) return false;
+                removeActive(x);
+                if (currentFocus >= x.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = (x.length - 1);
+                x[currentFocus].classList.add('selected');
+                x[currentFocus].scrollIntoView({ block: 'nearest' });
+            }
+            function removeActive(x) {
+                for (let i = 0; i < x.length; i++) x[i].classList.remove('selected');
+            }
+        }
+
+        setupSuggestion(document.getElementById('inputNama'), document.getElementById('suggestNama'), 'nama');
+        setupSuggestion(document.getElementById('inputBuku'), document.getElementById('suggestBuku'), 'buku');
+
+        document.getElementById('activityForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerText = "MENYIMPAN...";
+
+            const mId = document.getElementById('selectedMemberId').value;
+            const bId = document.getElementById('selectedBookId').value;
+            const mNama = document.getElementById('inputNama').value;
+            const bJudul = document.getElementById('inputBuku').value;
+            const bKode = document.getElementById('selectedBookCode').value;
+            const mKamar = document.getElementById('inputKamar').value.toUpperCase();
+            const mJenjang = document.getElementById('inputJenjang').value;
+            const bKat = document.getElementById('inputKategori').value;
+            const bAksi = document.getElementById('inputAktivitas').value;
+
+            try {
+                await db.collection("log_aktivitas").add({
+                    nama: mNama,
+                    memberId: mId,
+                    judul: bJudul,
+                    bookId: bId,
+                    kodeBuku: bKode,
+                    kamar: mKamar,
+                    jenjang: mJenjang,
+                    kategori: bKat,
+                    aktivitas: bAksi,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                await db.collection("keanggotaan_v2").doc(mId).update({
+                    kamarSantri: mKamar,
+                    jenjang: mJenjang
+                });
+
+                await rtdb.ref('data_flat/' + bId).update({
+                    kategori: bKat
+                });
+
+                alert('Berhasil Disimpan!');
+                e.target.reset();
+                document.getElementById('selectedMemberId').value = "";
+                document.getElementById('selectedBookId').value = "";
+                updateFieldStatus();
+            } catch (err) {
+                alert('Gagal!');
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "SIMPAN RIWAYAT";
+            }
+        };
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.relative')) {
+                document.getElementById('suggestNama').style.display = 'none';
+                document.getElementById('suggestBuku').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
